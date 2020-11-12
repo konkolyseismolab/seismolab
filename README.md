@@ -18,7 +18,7 @@ This code intended to get all possible information from Gaia Input Catalog using
 
 ## Usage:
 ```
-python rrl_acep_Mv.py <inputfile> (<options>)
+python query_gaia.py <inputfile> (<options>)
 ```
 Input file __must be__ in the following format:
 ```
