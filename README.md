@@ -31,13 +31,13 @@ GaiaID  RA  DEC  Name
  - `--BJ`      use Gaia parallax offset -29   mas (BJ et al. 2018)
  - `--Zinn`    use Gaia parallax offset -52.8 mas (Zinn et al. 2019)
  
- ### Notes
+### Notes
  
  - We checked all available MWDUST implemeted dust maps. SFD __not__ sensitive to distance!
  - Best dust map is Combined19, which gives you the E(B-V).
  - Absorption values are calculated using constants from Green et al. 2019.
  
- ## TODO
+### TODO
  - query all input targets at once whereever it is possible
  
  
