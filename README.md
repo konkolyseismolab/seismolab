@@ -39,3 +39,5 @@ GaiaID  RA  DEC  Name
  
  ## TODO
  - query all input targets at once whereever it is possible
+ 
+ 
