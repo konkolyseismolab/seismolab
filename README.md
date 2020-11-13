@@ -33,9 +33,9 @@ GaiaID  RA  DEC  Name
  
 ### Notes
  
- - We checked all available MWDUST implemeted dust maps. SFD __not__ sensitive to distance!
+ - We checked all available MWDUST implemeted dust maps. SFD is __not__ sensitive to distance!
  - Best dust map is Combined19, which gives you the E(B-V).
- - Absorption values are calculated using constants from Green et al. 2019.
+ - Absorption values are calculated using extinction vectors from Green et al. 2019 and [IsoClassify](https://github.com/danxhuber/isoclassify)
  
 ### TODO
  - query all input targets at once whereever it is possible
