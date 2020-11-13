@@ -32,6 +32,10 @@ def get_dist_absmag(i):
         lon_deg, lat_deg = np.nan,np.nan
         agaia,agaiaep,agaiaem = np.nan,np.nan,np.nan
         absgaia,absgaiaep,absgaiaem = np.nan,np.nan,np.nan
+        aBP,aBPep,aBPem = np.nan,np.nan,np.nan
+        absBP,absBPep,absBPem = np.nan,np.nan,np.nan
+        aRP,aRPep,aRPem = np.nan,np.nan,np.nan
+        absRP,absRPep,absRPem = np.nan,np.nan,np.nan
         aV,aVep,aVem = np.nan,np.nan,np.nan
         absV,absVep,absVem = np.nan,np.nan,np.nan
         aJ,aJep,aJem = np.nan,np.nan,np.nan
@@ -46,6 +50,10 @@ def get_dist_absmag(i):
                         lon_deg, lat_deg,
                         agaia,agaiaep,agaiaem,
                         absgaia,absgaiaep,absgaiaem,
+                        aBP,aBPep,aBPem,
+                        absBP,absBPep,absBPem,
+                        aRP,aRPep,aRPem,
+                        absRP,absRPep,absRPem,
                         aV,aVep,aVem,
                         absV,absVep,absVem,
                         aJ,aJep,aJem,
