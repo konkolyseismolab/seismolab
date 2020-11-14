@@ -16,7 +16,9 @@ This code intended to get all possible information from Gaia Input Catalog, 2MAS
 - query Gaia archive for RA, DEC, parallax, magnitudes, RRL/Cep periods
 - query VSX star-by-star if Gaia period not known
 - query SIMBAD catalogue for V mag and 2MASS JHKs mags
-- probabilistically estimate distances, extinctions, absolute magnitudes
+- probabilistically estimate distances
+- get extinctions from MWDUST maps
+- calculate absolute magnitudes in G,BP,RP,V,J,H,Ks bands
 
 ## Usage:
 ```
