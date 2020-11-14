@@ -24,7 +24,7 @@ This code intended to get all possible information from Gaia Input Catalog, 2MAS
 ```
 python query_gaia.py <inputfile> (<options>)
 ```
-Input file __must be__ in the following format:
+Input file __must be__ in one of the following formats:
 ```
 GaiaID  RA  DEC  Name
 GaiaID Name
