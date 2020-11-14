@@ -13,9 +13,9 @@ import warnings
 import requests
 from time import sleep
 from astropy.coordinates import Angle
-import sys
 from multiprocessing import Pool, cpu_count
 from tqdm import *
+from astropy.io.ascii import InconsistentTableError
 
 from astroquery.simbad import Simbad
 # Simbad.add_votable_fields('flux(J)','flux_bibcode(J)')
@@ -169,9 +169,11 @@ def get_dist_absmag(i):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("# Usage:")
-        print("\t python query_gaia.py <inputfile> (<options>)")
-        print('\t Inputfile must be in format:')
-        print('\t GaiaID RA DEC Name')
+        print("\t python rrl_acep_Mv.py <inputfile> (<options>)")
+        print('\t Inputfile must be in one of the following column formats:')
+        print('\t\t GaiaID RA DEC Name')
+        print('\t\t GaiaID Name')
+        print('\t\t GaiaID')
         print('\t Options:')
         print('\t --Stassun : use plx offset -80   mas (Stassun et al. 2018)')
         print('\t --Riess   : use plx offset -46   mas (Riess et al. 2018)')
@@ -200,173 +202,131 @@ if __name__ == '__main__':
         elif sys.argv[2] == '--Zinn': outfilename = infilenameShort+'_MgaiaJHK_Zinn.txt'
         else: outfilename = infilenameShort+'_MgaiaJHK.txt'
     else: outfilename = infilenameShort+'_MgaiaJHK.txt'
-    data=ascii.read(infilename,names=['Source','ra','dec','Name'])
+
+    # ------ Guess input file format and load it -----------
+    try:
+        data=ascii.read(infilename,names=['Source','ra','dec','Name'])
+        data = data['Source','Name']
+    except InconsistentTableError:
+        try:
+            data=ascii.read(infilename,names=['Source','Name'])
+        except InconsistentTableError:
+            try:
+                data=ascii.read(infilename,names=['Source'])
+            except InconsistentTableError:
+                warnings.warn('\nInconsistent Input Data!\n \
+                Inputfile must be in one of the following column formats:\n \
+                GaiaID RA DEC Name\n \
+                GaiaID Name\n \
+                GaiaID')
+                exit(-1)
     #data['Source'].format = '%d'
     data = unique(data, keys='Source')
-
 
     #dnumodel = asfgrid.Seism()
     #bcmodel = h5py.File('bcgrid.h5', 'r')
     #dustmodel = mwdust.Green19()
     dustmodel = mwdust.Combined19()
 
-    # --- Query Gaia, 2MASS & VSX catalogues --------
-    gaia = Table(names=['Source','Plx','e_Plx','Gmag','e_Gmag','BPmag','e_BPmag','RPmag','e_RPmag'],
-                 dtype=['int64','float64','float64','float64','float64','float64','float64','float64','float64'])
-    #twomass = Table(names=['Jmag','e_Jmag','Hmag','e_Hmag','Kmag','e_Kmag'],
-    #                dtype=['float32','float32','float32','float32','float32','float32'])
-    period = Table(names=['Period'], dtype=['float64'])
+    # --- Query Gaia -----------
+    from astroquery.gaia import Gaia
+    print('Query Gaia catalog...')
+    try:
+        job = Gaia.launch_job("SELECT DR2.source_id,DR2.ra,DR2.dec,"
+                      "DR2.parallax,DR2.parallax_error,"
+                      "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                      "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                      "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                      "RRL.pf,RRL.p1_o,"
+                      "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                      "FROM gaiadr2.gaia_source AS DR2 "
+                      "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                      "ON DR2.source_id=RRL.source_id "
+                      "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                      "ON DR2.source_id=CEP.source_id "
+                      "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
+    except requests.exceptions.ConnectionError:
+        sleep(1)
+        job = Gaia.launch_job("SELECT DR2.source_id,DR2.ra,DR2.dec,"
+                      "DR2.parallax,DR2.parallax_error,"
+                      "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                      "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                      "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                      "RRL.pf,RRL.p1_o,"
+                      "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                      "FROM gaiadr2.gaia_source AS DR2 "
+                      "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                      "ON DR2.source_id=RRL.source_id "
+                      "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                      "ON DR2.source_id=CEP.source_id "
+                      "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
 
-    max_ = len(data['Source'])
-    print('Dowloading Gaia & VSX data...')
-    for i,source in tqdm(enumerate(data['Source']), total=max_):
-        #print('Dowloading Gaia & VSX data for %s (%d/%d)' % (data['Name'][i],i+1,len(data)) )
+    gaiaquery = job.get_results()
+    # Calculate magnitude errors from fluxes
+    gaiaquery['phot_g_mean_mag_error'] = gaiaquery['phot_g_mean_flux_error']*2.5*1/(gaiaquery['phot_g_mean_flux']*np.log(10))
+    gaiaquery['phot_bp_mean_mag_error'] = gaiaquery['phot_bp_mean_flux_error']*2.5*1/(gaiaquery['phot_bp_mean_flux']*np.log(10))
+    gaiaquery['phot_rp_mean_mag_error'] = gaiaquery['phot_rp_mean_flux_error']*2.5*1/(gaiaquery['phot_rp_mean_flux']*np.log(10))
+    # Select periods from Gaia RRL/Cep catalogues
+    select_period = np.array([gaiaquery['pf'],gaiaquery['p1_o'],gaiaquery['pf_2'],gaiaquery['p1_o_2'],gaiaquery['p2_o'],gaiaquery['p3_o']]).T
+    select_period[ np.isnan(select_period) ] = -99
+    select_period = np.max(  select_period ,axis=1)
+    select_period = np.where( select_period==-99., np.nan, select_period)
+    # Update Gaia table
+    gaiaquery['Period'] = select_period
+    gaiaquery = gaiaquery['source_id','ra','dec',
+                         'parallax','parallax_error',
+                         'phot_g_mean_mag','phot_g_mean_mag_error','phot_bp_mean_mag',
+                         'phot_bp_mean_mag_error','phot_rp_mean_mag','phot_rp_mean_mag_error',
+                         'Period']
 
-        # ------ Gaia catalog -----------
+    # --- Query VSX catalogue for missing Gaia periods  --------
+    max_ = len(gaiaquery[ np.isnan(gaiaquery['Period']) ] )
+    print('Query VSX catalog...')
+    for source in tqdm( gaiaquery[ np.isnan(gaiaquery['Period']) ] , total=max_):
         try:
-            gaiaquery = Vizier(catalog=['I/345/gaia2'],
-                           column_filters={"Source":source.astype('str')},
-                           columns=['Source','Plx','e_Plx','Gmag','e_Gmag','BPmag','e_BPmag','RPmag','e_RPmag']).get_catalogs('I/345/gaia2')[0]
+            # Query VSX catalog using Gaia DR2 ID
+            vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str')+'test',catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+            vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
+                                    (vsxqueryper['DEJ2000']-source['dec'])**2
+            vsxqueryper.sort('dist')
+            vsxqueryper = vsxqueryper['Period'][0]
+            gaiaquery['Period'][ gaiaquery['source_id'] == source['source_id'] ] = vsxqueryper
         except requests.exceptions.ConnectionError:
             sleep(1)
-            gaiaquery = Vizier(catalog=['I/345/gaia2'],
-                           column_filters={"Source":source.astype('str')},
-                           columns=['Source','Plx','e_Plx','Gmag','e_Gmag','BPmag','e_BPmag','RPmag','e_RPmag']).get_catalogs('I/345/gaia2')[0]
-
-        '''
-        # ------ 2MASS catalog -----------
-        try:
-            twomassquery = Vizier.query_object('Gaia DR2 ' + \
-                source.astype('str'),catalog='II/246',radius=Angle(10, "arcsec"))[0]
-            twomassquery['dist'] = (twomassquery['RAJ2000']-data['ra'][i])**2 + \
-                                    (twomassquery['DEJ2000']-data['dec'][i])**2
-            twomassquery.sort('dist')
-            twomassquery = twomassquery['Jmag','e_Jmag','Hmag','e_Hmag','Kmag','e_Kmag'][0]
-            twomassquery = Table(twomassquery)
-            twomassquery.add_column( Column(source, name='Source') )
-        except requests.exceptions.ConnectionError:
-            sleep(1)
-            twomassquery = Vizier.query_object('Gaia DR2 ' + \
-                source.astype('str'),catalog='II/246',radius=Angle(10, "arcsec"))[0]
-            twomassquery['dist'] = (twomassquery['RAJ2000']-data['ra'][i])**2 + \
-                                    (twomassquery['DEJ2000']-data['dec'][i])**2
-            twomassquery.sort('dist')
-            twomassquery = twomassquery['Jmag','e_Jmag','Hmag','e_Hmag','Kmag','e_Kmag'][0]
-            twomassquery = Table(twomassquery)
-            twomassquery.add_column( Column(source, name='Source') )
-        except IndexError:
-            twomassquery = Column([np.nan,np.nan,np.nan,np.nan,np.nan,np.nan])
-            twomassquery = Table(twomassquery)
-            twomassquery.rename_columns(['col0','col1','col2','col3','col4','col5'],['Jmag','e_Jmag','Hmag','e_Hmag','Kmag','e_Kmag'])
-            twomassquery.add_column( Column(source, name='Source') )
-        '''
-
-        # ------ Gaia period or VSX period -----------
-        try:
-            try:
-                # Query Gaia RRL catalog
-                vsxqueryper = Vizier(catalog=['I/345/gaia2'],column_filters={"Source":source.astype('str')},
-                   columns=['Source','Pf','P1O']).get_catalogs('I/345/rrlyrae')[0]
-                if vsxqueryper['Pf'] > 0:
-                    vsxqueryper = vsxqueryper['Pf']
-                elif vsxqueryper['P1O'] > 0:
-                    vsxqueryper = vsxqueryper['P1O']
-                vsxquery = Table(names=['Period'])
-                vsxquery.add_row( Column([vsxqueryper], name='Period') )
-            except requests.exceptions.ConnectionError:
-                sleep(1)
-                vsxqueryper = Vizier(catalog=['I/345/gaia2'],column_filters={"Source":source.astype('str')},
-                   columns=['Source','Pf','P1O']).get_catalogs('I/345/rrlyrae')[0]
-                if vsxqueryper['Pf'] > 0:
-                    vsxqueryper = vsxqueryper['Pf']
-                elif vsxqueryper['P1O'] > 0:
-                    vsxqueryper = vsxqueryper['P1O']
-                vsxquery = Table(names=['Period'])
-                vsxquery.add_row( Column([vsxqueryper], name='Period') )
+            vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str')+'test',catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+            vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
+                                    (vsxqueryper['DEJ2000']-source['dec'])**2
+            vsxqueryper.sort('dist')
+            vsxqueryper = vsxqueryper['Period'][0]
+            gaiaquery['Period'][ gaiaquery['source_id'] == source['source_id'] ] = vsxqueryper
         except (IndexError,KeyError):
             try:
-                try:
-                    # Query Gaia Cepheid catalog
-                    vsxqueryper = Vizier(catalog=['I/345/gaia2'],column_filters={"Source":source.astype('str')},
-                       columns=['Source','Pf','P1O','P2O','P3O']).get_catalogs('I/345/cepheid')[0]
-                    if vsxqueryper['Pf'] > 0:
-                        vsxqueryper = vsxqueryper['Pf']
-                    elif vsxqueryper['P1O'] > 0:
-                        vsxqueryper = vsxqueryper['P1O']
-                    elif vsxqueryper['P2O'] > 0:
-                        vsxqueryper = vsxqueryper['P2O']
-                    elif vsxqueryper['P3O'] > 0:
-                        vsxqueryper = vsxqueryper['P3O']
-                    vsxquery = Table(names=['Period'])
-                    vsxquery.add_row( Column([vsxqueryper], name='Period') )
-                except requests.exceptions.ConnectionError:
-                    sleep(1)
-                    vsxqueryper = Vizier(catalog=['I/345/gaia2'],column_filters={"Source":source.astype('str')},
-                       columns=['Source','Pf','P1O','P2O','P3O']).get_catalogs('I/345/cepheid')[0]
-                    if vsxqueryper['Pf'] > 0:
-                        vsxqueryper = vsxqueryper['Pf']
-                    elif vsxqueryper['P1O'] > 0:
-                        vsxqueryper = vsxqueryper['P1O']
-                    elif vsxqueryper['P2O'] > 0:
-                        vsxqueryper = vsxqueryper['P2O']
-                    elif vsxqueryper['P3O'] > 0:
-                        vsxqueryper = vsxqueryper['P3O']
-                    vsxquery = Table(names=['Period'])
-                    vsxquery.add_row( Column([vsxqueryper], name='Period') )
+                # Query VSX catalog using Name
+                name = data['Name'][ data['Source'] == source['source_id'] ][0]
+                name = str(name).replace('_',' ')
+                vsxqueryper = Vizier(timeout=300).query_object(name,catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+                vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
+                                        (vsxqueryper['DEJ2000']-source['dec'])**2
+                vsxqueryper.sort('dist')
+                vsxqueryper = vsxqueryper['Period'][0]
+                gaiaquery['Period'][ gaiaquery['source_id'] == source['source_id'] ] = vsxqueryper
+            except requests.exceptions.ConnectionError:
+                sleep(1)
+                name = data['Name'][ data['Source'] == source['source_id'] ][0]
+                name = str(name).replace('_',' ')
+                vsxqueryper = Vizier(timeout=300).query_object(name,catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+                vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
+                                        (vsxqueryper['DEJ2000']-source['dec'])**2
+                vsxqueryper.sort('dist')
+                vsxqueryper = vsxqueryper['Period'][0]
+                gaiaquery['Period'][ gaiaquery['source_id'] == source['source_id'] ] = vsxqueryper
             except (IndexError,KeyError):
-                try:
-                    # Query VSX catalog using Gaia DR2 ID
-                    vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source.astype('str'),catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
-                    vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-data['ra'][i])**2 + \
-                                            (vsxqueryper['DEJ2000']-data['dec'][i])**2
-                    vsxqueryper.sort('dist')
-                    vsxqueryper = vsxqueryper['Period'][0]
-                    vsxquery = Table(names=['Period'])
-                    vsxquery.add_row( Column([vsxqueryper], name='Period') )
-                except requests.exceptions.ConnectionError:
-                    sleep(1)
-                    vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source.astype('str'),catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
-                    vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-data['ra'][i])**2 + \
-                                            (vsxqueryper['DEJ2000']-data['dec'][i])**2
-                    vsxqueryper.sort('dist')
-                    vsxqueryper = vsxqueryper['Period'][0]
-                    vsxquery = Table(names=['Period'])
-                    vsxquery.add_row( Column([vsxqueryper], name='Period') )
-                except (IndexError,KeyError):
-                    try:
-                        # Query VSX catalog using Name
-                        vsxqueryper = Vizier(timeout=300).query_object(data['Name'][i],catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
-                        vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-data['ra'][i])**2 + \
-                                                (vsxqueryper['DEJ2000']-data['dec'][i])**2
-                        vsxqueryper.sort('dist')
-                        vsxqueryper = vsxqueryper['Period'][0]
-                        vsxquery = Table(names=['Period'])
-                        vsxquery.add_row( Column([vsxqueryper], name='Period') )
-                    except requests.exceptions.ConnectionError:
-                        sleep(1)
-                        vsxqueryper = Vizier(timeout=300).query_object(data['Name'][i],catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
-                        vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-data['ra'][i])**2 + \
-                                                (vsxqueryper['DEJ2000']-data['dec'][i])**2
-                        vsxqueryper.sort('dist')
-                        vsxqueryper = vsxqueryper['Period'][0]
-                        vsxquery = Table(names=['Period'])
-                        vsxquery.add_row( Column([vsxqueryper], name='Period') )
-                    except (IndexError,KeyError):
-                        vsxquery = Column([np.nan])
-                        vsxquery = Table(vsxquery)
-                        vsxquery.rename_columns(['col0'],['Period'])
-        vsxquery.add_column( Column(source, name='Source') )
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            gaia = vstack([gaia,gaiaquery])
-            #twomass = vstack([twomass,twomassquery])
-            period = vstack([period,vsxquery])
-            #vmag = vstack([vmag,simbadquery])
+                pass
+    gaiaquery.rename_columns(['source_id'],['Source'])
 
     # ------ SIMBAD catalog for V,J,H,K mags -----------
     # Query all objects from Simbad at once
-    print('Dowloading Simbad data for all stars...')
+    print('Downloading Simbad data for all stars...')
     sources = []
     for source in data['Source']:
         sources.append('Gaia DR2 '+source.astype('str')  )
@@ -389,13 +349,11 @@ if __name__ == '__main__':
     # ------ Merge catalogs -----------
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        data = join(data,gaia,join_type='left',keys='Source')
-        #data = join(data,twomass,join_type='left',keys='Source')
-        data = join(data,period,join_type='left',keys='Source')
+        data = join(data,gaiaquery,join_type='left',keys='Source')
         data['Source'] = data['Source'].astype('str') # Convert Source to str to do join
         data = join(data,simbadquery,join_type='left',keys='Source')
 
-    data.rename_columns(['Plx','e_Plx','Gmag','e_Gmag','BPmag','e_BPmag','RPmag','e_RPmag'],
+    data.rename_columns(['parallax','parallax_error','phot_g_mean_mag','phot_g_mean_mag_error','phot_bp_mean_mag','phot_bp_mean_mag_error','phot_rp_mean_mag','phot_rp_mean_mag_error'],
                         ['plx','sig_plx','gamag','sig_gamag','bpmag','sig_bpmag','rpmag','sig_rpmag'])
 
     data.rename_columns(['FLUX_J','FLUX_ERROR_J','FLUX_H','FLUX_ERROR_H','FLUX_K','FLUX_ERROR_K'],
