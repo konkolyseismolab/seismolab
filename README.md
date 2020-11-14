@@ -10,11 +10,13 @@ Below I provide descriptions for each of the codes.
 
 # 1. Calculating Gaia absolute magnitudes
 
-This code intended to get all possible information from Gaia Input Catalog using others such as VSX.
+This code intended to get all possible information from Gaia Input Catalog, 2MASS, VSX and Simbad.
 
 ### The code works as follows:
-- query Gaia, 2MASS, VSX, SIMBAD catalogues for available measurements
-- probabilistically estimates distance, extinctions, absolute magnitudes
+- query Gaia archive for RA, DEC, parallax, magnitudes, RRL/Cep periods
+- query VSX star-by-star if Gaia period not known
+- query SIMBAD catalogue for V mag and 2MASS JHKs mags
+- probabilistically estimate distances, extinctions, absolute magnitudes
 
 ## Usage:
 ```
@@ -23,6 +25,8 @@ python query_gaia.py <inputfile> (<options>)
 Input file __must be__ in the following format:
 ```
 GaiaID  RA  DEC  Name
+GaiaID Name
+GaiaID
 ```
 
 ## Available options
@@ -38,7 +42,7 @@ GaiaID  RA  DEC  Name
  - Absorption values are calculated using extinction vectors from Green et al. 2019 and [IsoClassify](https://github.com/danxhuber/isoclassify)
  
 ### TODO
- - query all input targets at once whereever it is possible
+ - ~~query all input targets at once whereever it is possible~~
  
  # 2. Get Fourier parameters
 
