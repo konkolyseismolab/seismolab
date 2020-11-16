@@ -32,10 +32,10 @@ GaiaID
 ```
 
 ## Available options
- - `--Stassun` use Gaia parallax offset -80   mas (Stassun et al. 2018)
- - `--Riess`   use Gaia parallax offset -46   mas (Riess et al. 2018)
- - `--BJ`      use Gaia parallax offset -29   mas (BJ et al. 2018)
- - `--Zinn`    use Gaia parallax offset -52.8 mas (Zinn et al. 2019)
+ - `--Stassun` use Gaia parallax offset -80   μas (Stassun et al. 2018)
+ - `--Riess`   use Gaia parallax offset -46   μas (Riess et al. 2018)
+ - `--BJ`      use Gaia parallax offset -29   μas (BJ et al. 2018)
+ - `--Zinn`    use Gaia parallax offset -52.8 μas (Zinn et al. 2019)
  
 ### Notes
  
