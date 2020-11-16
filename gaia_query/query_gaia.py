@@ -175,10 +175,10 @@ if __name__ == '__main__':
         print('\t\t GaiaID Name')
         print('\t\t GaiaID')
         print('\t Options:')
-        print('\t --Stassun : use plx offset -80   mas (Stassun et al. 2018)')
-        print('\t --Riess   : use plx offset -46   mas (Riess et al. 2018)')
-        print('\t --BJ      : use plx offset -29   mas (BJ et al. 2018)')
-        print('\t --Zinn    : use plx offset -52.8 mas (Zinn et al. 2019)')
+        print('\t --Stassun : use plx offset -80   uas (Stassun et al. 2018)')
+        print('\t --Riess   : use plx offset -46   uas (Riess et al. 2018)')
+        print('\t --BJ      : use plx offset -29   uas (BJ et al. 2018)')
+        print('\t --Zinn    : use plx offset -52.8 uas (Zinn et al. 2019)')
         exit(0)
 
     # ------ For plx correction -----------
