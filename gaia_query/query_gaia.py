@@ -175,18 +175,18 @@ if __name__ == '__main__':
         print('\t\t GaiaID Name')
         print('\t\t GaiaID')
         print('\t Options:')
-        print('\t --Stassun : use plx offset -80   uas (Stassun et al. 2018)')
-        print('\t --Riess   : use plx offset -46   uas (Riess et al. 2018)')
-        print('\t --BJ      : use plx offset -29   uas (BJ et al. 2018)')
-        print('\t --Zinn    : use plx offset -52.8 uas (Zinn et al. 2019)')
+        print('\t --Stassun : use plx zeropoint -80   uas (Stassun et al. 2018)')
+        print('\t --Riess   : use plx zeropoint -46   uas (Riess et al. 2018)')
+        print('\t --BJ      : use plx zeropoint -29   uas (BJ et al. 2018)')
+        print('\t --Zinn    : use plx zeropoint -52.8 uas (Zinn et al. 2019)')
         exit(0)
 
     # ------ For plx correction -----------
     if len(sys.argv)==3:
-        if sys.argv[2]   == '--Stassun': plx_offset = -0.08   #mas #Stassun et al. 2018
-        elif sys.argv[2] == '--Riess':   plx_offset = -0.046  #mas #Riess et al. 2018
-        elif sys.argv[2] == '--BJ':      plx_offset = -0.029  #mas #BJ et al. 2018
-        elif sys.argv[2] == '--Zinn':    plx_offset = -0.0528 #mas #Zinn et al 2018
+        if sys.argv[2]   == '--Stassun': plx_offset = +0.08   #mas #Stassun et al. 2018
+        elif sys.argv[2] == '--Riess':   plx_offset = +0.046  #mas #Riess et al. 2018
+        elif sys.argv[2] == '--BJ':      plx_offset = +0.029  #mas #BJ et al. 2018
+        elif sys.argv[2] == '--Zinn':    plx_offset = +0.0528 #mas #Zinn et al 2019
         else: plx_offset = 0.0
     else:
          plx_offset = 0.0
