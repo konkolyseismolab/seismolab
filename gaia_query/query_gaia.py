@@ -1,4 +1,3 @@
-import sys
 #import ebf
 import numpy as np
 #import scipy.interpolate
@@ -16,6 +15,8 @@ from astropy.coordinates import Angle
 from multiprocessing import Pool, cpu_count
 from tqdm import *
 from astropy.io.ascii import InconsistentTableError
+import argparse
+from argparse import RawTextHelpFormatter
 
 from astroquery.simbad import Simbad
 # Simbad.add_votable_fields('flux(J)','flux_bibcode(J)')
@@ -167,41 +168,55 @@ def get_dist_absmag(i):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("# Usage:")
-        print("\t python rrl_acep_Mv.py <inputfile> (<options>)")
-        print('\t Inputfile must be in one of the following column formats:')
-        print('\t\t GaiaID RA DEC Name')
-        print('\t\t GaiaID Name')
-        print('\t\t GaiaID')
-        print('\t Options:')
-        print('\t --Stassun : use plx zeropoint -80   uas (Stassun et al. 2018)')
-        print('\t --Riess   : use plx zeropoint -46   uas (Riess et al. 2018)')
-        print('\t --BJ      : use plx zeropoint -29   uas (BJ et al. 2018)')
-        print('\t --Zinn    : use plx zeropoint -52.8 uas (Zinn et al. 2019)')
-        exit(0)
+    # Create the parser
+    my_parser = argparse.ArgumentParser(description='Gaia Query w/ extinction correction',
+                                        formatter_class=RawTextHelpFormatter)
+
+    # Add the arguments
+    my_parser.add_argument('Path',
+                           metavar='<inputfile>',
+                           type=str,
+                           help="the path to inputfile\n"
+                                "Inputfile must be in one of the following column formats:\n"
+                                " GaiaID RA DEC Name\n"
+                                " GaiaID Name\n"
+                                " GaiaID\n")
+
+    my_parser.add_argument('--EDR3',
+                           action='store_true',
+                           help='Query EDR3 catalog w/ new BJ distances')
+
+    my_parser.add_argument('--Stassun', action='store_true', help='use plx zeropoint -80   uas (Stassun et al. 2018)')
+    my_parser.add_argument('--Riess', action='store_true', help='use plx zeropoint -46   uas (Riess et al. 2018)')
+    my_parser.add_argument('--BJ', action='store_true', help='use plx zeropoint -29   uas (BJ et al. 2018)')
+    my_parser.add_argument('--Zinn', action='store_true', help='use plx zeropoint -52.8 uas (Zinn et al. 2019)')
+
+    # Execute parse_args()
+    args = my_parser.parse_args()
+    useEDR3 = args.EDR3
 
     # ------ For plx correction -----------
-    if len(sys.argv)==3:
-        if sys.argv[2]   == '--Stassun': plx_offset = +0.08   #mas #Stassun et al. 2018
-        elif sys.argv[2] == '--Riess':   plx_offset = +0.046  #mas #Riess et al. 2018
-        elif sys.argv[2] == '--BJ':      plx_offset = +0.029  #mas #BJ et al. 2018
-        elif sys.argv[2] == '--Zinn':    plx_offset = +0.0528 #mas #Zinn et al 2019
-        else: plx_offset = 0.0
+    if not useEDR3:
+        if args.Stassun: plx_offset = +0.08   #mas #Stassun et al. 2018
+        elif args.Riess: plx_offset = +0.046  #mas #Riess et al. 2018
+        elif args.BJ:    plx_offset = +0.029  #mas #BJ et al. 2018
+        elif args.Zinn:  plx_offset = +0.0528 #mas #Zinn et al 2019
+        else:            plx_offset = 0.0
     else:
-         plx_offset = 0.0
+        plx_offset = 0.0
 
-    # ------ Parse stdin -----------
-    infilename = sys.argv[1]
+    # ------ Define filenames -----------
+    infilename = args.Path
     lenOfExtension = len(infilename.split('.')[-1])
     infilenameShort = infilename[:-(lenOfExtension+1)] # remove extension
-    if len(sys.argv)==3:
-        if sys.argv[2] == '--Stassun': outfilename = infilenameShort+'_MgaiaJHK_Stassun.txt'
-        elif sys.argv[2] == '--Riess': outfilename = infilenameShort+'_MgaiaJHK_Riess.txt'
-        elif sys.argv[2] == '--BJ': outfilename = infilenameShort+'_MgaiaJHK_BJ.txt'
-        elif sys.argv[2] == '--Zinn': outfilename = infilenameShort+'_MgaiaJHK_Zinn.txt'
-        else: outfilename = infilenameShort+'_MgaiaJHK.txt'
-    else: outfilename = infilenameShort+'_MgaiaJHK.txt'
+    if not useEDR3:
+        if args.Stassun: outfilename = infilenameShort+'_MgaiaJHK_Stassun.txt'
+        elif args.Riess: outfilename = infilenameShort+'_MgaiaJHK_Riess.txt'
+        elif args.BJ:    outfilename = infilenameShort+'_MgaiaJHK_BJ.txt'
+        elif args.Zinn:  outfilename = infilenameShort+'_MgaiaJHK_Zinn.txt'
+        else:            outfilename = infilenameShort+'_MgaiaJHK.txt'
+    else:
+        outfilename = infilenameShort+'_MgaiaJHK.txt'
 
     # ------ Guess input file format and load it -----------
     try:
