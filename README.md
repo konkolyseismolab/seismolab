@@ -13,10 +13,11 @@ Below I provide descriptions for each of the codes.
 This code intended to get all possible information from Gaia Input Catalog, 2MASS, VSX and Simbad.
 
 ### The code works as follows:
-- query Gaia archive for RA, DEC, parallax, magnitudes, RRL/Cep periods
-- query VSX star-by-star if Gaia period not known
+- query Gaia archive for RA, DEC, parallax, magnitudes, *(only for DR2)* RRL/Cep periods
+- query VSX star-by-star if Gaia period not known *(only for DR2)*
 - query SIMBAD catalogue for V mag and 2MASS JHKs mags
-- probabilistically estimate distances
+- probabilistically estimate distances *(only for DR2)*
+- download BJ dinstances *(only for EDR3)*
 - get extinctions from MWDUST maps
 - calculate absolute magnitudes in G,BP,RP,V,J,H,Ks bands
 
@@ -32,10 +33,12 @@ GaiaID
 ```
 
 ## Available options
- - `--Stassun` use Gaia parallax offset -80   μas (Stassun et al. 2018)
- - `--Riess`   use Gaia parallax offset -46   μas (Riess et al. 2018)
- - `--BJ`      use Gaia parallax offset -29   μas (BJ et al. 2018)
- - `--Zinn`    use Gaia parallax offset -52.8 μas (Zinn et al. 2019)
+ - `--EDR3`    Query EDR3 catalog w/ new BJ distances
+ - `--photo`   Use photogeometric BJ distance instead of geometric ones
+ - `--Stassun` use Gaia parallax offset -80   μas for DR2 (Stassun et al. 2018)
+ - `--Riess`   use Gaia parallax offset -46   μas for DR2 (Riess et al. 2018)
+ - `--BJ`      use Gaia parallax offset -29   μas for DR2 (BJ et al. 2018)
+ - `--Zinn`    use Gaia parallax offset -52.8 μas for DR2 (Zinn et al. 2019)
  
 ### Notes
  
@@ -45,6 +48,7 @@ GaiaID
  
 ### TODO
  - ~~query all input targets at once whereever it is possible~~
+ - handle if Gaia EDR3 X DR2 returns w/ more than one targets
  
  # 2. Get Fourier parameters
 
