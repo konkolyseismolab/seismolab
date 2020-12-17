@@ -535,6 +535,117 @@ def stparas(input,dnumodel=0,bcmodel=0,dustmodel=0,dnucor=0,useav=0,plot=0):
 
     return out
 
+def stparas_edr3(input,dustmodel=0):
+
+    # load model if they're not passed on
+    if (dustmodel == 0.):
+        dustmodel = mwdust.Green19()
+
+    # object containing output values
+    out = resdata()
+
+    ## extinction coefficients
+    extfactors=extinction()
+
+    # pick an apparent magnitude from input
+    map=-99.
+    if (input.vmag > -99.):
+        map = input.vmag
+        if input.vmage>-99: mape = input.vmage
+        else: mape = 0.02
+        str = 'bc_v'
+        avtoext=extfactors.av
+
+    elif (input.imag > -99.):
+        map = input.imag
+        if input.image>-99: mape = input.image
+        else: mape = 0.02
+        str = 'bc_i'
+        avtoext=0.
+
+    elif (input.vtmag > -99.):
+        map = input.vtmag
+        if input.vtmage>-99: mape = input.vtmage
+        else: mape = 0.02
+        str = 'bc_vt'
+        avtoext=extfactors.avt
+
+    elif (input.jmag > -99.):
+        map = input.jmag
+        if input.jmage>-99: mape = input.jmage
+        else: mape = 0.02
+        str = 'bc_j'
+        avtoext=extfactors.aj
+
+    elif (input.hmag > -99.):
+        map = input.hmag
+        if input.hmage>-99: mape = input.hmage
+        else: mape = 0.02
+        str = 'bc_h'
+        avtoext=extfactors.ah
+
+    elif (input.kmag > -99.):
+        map = input.kmag
+        if input.kmage>-99: mape = input.kmage
+        else: mape = 0.02
+        str = 'bc_k'
+        avtoext=extfactors.ak
+
+    elif (input.gamag > -99.):
+        map = input.gamag
+        if input.gamage>-99: mape = input.gamage
+        else: mape = 0.02
+        str = 'bc_ga'
+        avtoext=extfactors.aga
+    elif (input.bpmag > -99.):
+        map = input.bpmag
+        if input.bpmage>-99: mape = input.bpmage
+        else: mape = 0.02
+        str = 'bc_bp'
+        avtoext=extfactors.abp
+    elif (input.rpmag > -99.):
+        map = input.rpmag
+        if input.rpmage>-99: mape = input.rpmage
+        else: mape = 0.02
+        str = 'bc_rp'
+        avtoext=extfactors.arp
+    else:
+        return out
+
+    # get l,b from RA,DEC
+    equ = ephem.Equatorial(input.ra*np.pi/180., input.dec*np.pi/180., epoch=ephem.J2000)
+    gal = ephem.Galactic(equ)
+    lon_deg=gal.lon*180./np.pi
+    lat_deg=gal.lat*180./np.pi
+
+    # Get extinction map at a given BJ distances
+    distanceSamples = np.array([input.BJdisem,input.BJdis,input.BJdisep]) # in pc
+
+    # Get extinction at a given l,b
+    ebvs = dustmodel(lon_deg,lat_deg,distanceSamples/1000) # dist in kpc
+    avs = avtoext*ebvs
+
+    absmag   = -5.*np.log10(distanceSamples[1]) -avs[1] +map +5.
+    absmagep = -5.*np.log10(distanceSamples[0]) -avs[0] +(map+mape) +5.
+    absmagem = -5.*np.log10(distanceSamples[2]) -avs[2] +(map-mape) +5.
+
+    out.avs   = avs[1]
+    out.avsep = avs[2]-out.avs
+    out.avsem = out.avs-avs[0]
+
+    out.absmag   = absmag
+    out.absmagep = absmagep-out.absmag
+    out.absmagem = out.absmag-absmagem
+
+    out.dis   = distanceSamples[1]
+    out.disep = distanceSamples[2]-out.dis
+    out.disem = out.dis-distanceSamples[0]
+
+    out.lon_deg = lon_deg
+    out.lat_deg = lat_deg
+
+    return out
+
 def getstat(indat):
     '''
     bn1,bn2=knuth(indat,return_bins=True)
@@ -628,6 +739,10 @@ class obsdata():
 
         self.clump=0.
 
+        self.BJdis   = -99.
+        self.BJdisep = -99.
+        self.BJdisem = -99.
+
     def addspec(self,value,sigma):
         self.teff = value[0]
         self.teffe = sigma[0]
@@ -695,6 +810,11 @@ class obsdata():
         self.numaxe = sigma[0]
         self.dnu = value[1]
         self.dnue = sigma[1]
+
+    def addBJdis(self,dis,disep,disem):
+        self.BJdis   = dis
+        self.BJdisep = disep
+        self.BJdisem = disem
 
 class resdata():
     def __init__(self):
