@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #import ebf
 import numpy as np
 #import scipy.interpolate
@@ -13,10 +16,11 @@ import requests
 from time import sleep
 from astropy.coordinates import Angle
 from multiprocessing import Pool, cpu_count
-from tqdm import *
+from tqdm import tqdm
 from astropy.io.ascii import InconsistentTableError
 import argparse
 from argparse import RawTextHelpFormatter
+import sys
 
 from astroquery.simbad import Simbad
 # Simbad.add_votable_fields('flux(J)','flux_bibcode(J)')
@@ -759,18 +763,32 @@ if __name__ == '__main__':
     print('Calculating distances, absolute magnitudes...')
     outdata = []
 
-    ncores = cpu_count()
-    with Pool(processes=ncores) as p:
+    if sys.version_info < (3, 8):
+        ncores = cpu_count()
+        with Pool(processes=ncores) as p:
+            max_ = len(data)
+            with tqdm(total=max_) as pbar:
+                if not useEDR3:
+                    for i,result in enumerate(p.imap_unordered(get_dist_absmag, np.arange(max_).tolist() )):
+                        outdata.append(result)
+                        pbar.update()
+                else:
+                    for i,result in enumerate(p.imap_unordered(get_dist_absmag_edr3, np.arange(max_).tolist() )):
+                        outdata.append(result)
+                        pbar.update()
+    else:
+        warnings.warn(
+            'Python>=3.8 detected, running on single thread')
+
         max_ = len(data)
-        with tqdm(total=max_) as pbar:
-            if not useEDR3:
-                for i,result in enumerate(p.imap_unordered(get_dist_absmag, np.arange(max_).tolist() )):
-                    outdata.append(result)
-                    pbar.update()
-            else:
-                for i,result in enumerate(p.imap_unordered(get_dist_absmag_edr3, np.arange(max_).tolist() )):
-                    outdata.append(result)
-                    pbar.update()
+        if not useEDR3:
+            for i in tqdm(np.arange(max_).tolist() ):
+                result = get_dist_absmag(i)
+                outdata.append(result)
+        else:
+            for i in tqdm(np.arange(max_).tolist() ):
+                result = get_dist_absmag_edr3(i)
+                outdata.append(result)
 
     outdataTable = Table(names=['Source',
                           'dis','disep','disem',
