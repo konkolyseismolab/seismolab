@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #import ebf
@@ -527,42 +526,78 @@ if __name__ == '__main__':
             # Initialize BJ catalog
             service = vo.dal.TAPService("https://dc.zah.uni-heidelberg.de/__system__/tap/run/tap")
             # Query BJ catalog
-            BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
-                                BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
-                                BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
-                                FROM gedr3dist.litewithdist as BJ \
-                                WHERE BJ.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
+                                    BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
+                                    BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
+                                    FROM gedr3dist.litewithdist as BJ \
+                                    WHERE BJ.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
+                                    BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
+                                    BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
+                                    FROM gedr3dist.litewithdist as BJ \
+                                    WHERE BJ.source_id = "+str(tuple(data['Source'])[0]))
             BJdist = BJdist.to_table()
 
-            job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
-                      "EDR3.parallax,EDR3.parallax_error,"
-                      "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
-                      "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
-                      "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
-                      "FROM gaiaedr3.gaia_source AS EDR3 "
-                      "WHERE EDR3.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
+                          "EDR3.parallax,EDR3.parallax_error,"
+                          "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
+                          "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
+                          "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
+                          "FROM gaiaedr3.gaia_source AS EDR3 "
+                          "WHERE EDR3.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
+                          "EDR3.parallax,EDR3.parallax_error,"
+                          "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
+                          "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
+                          "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
+                          "FROM gaiaedr3.gaia_source AS EDR3 "
+                          "WHERE EDR3.source_id = "+str(tuple(data['Source'])[0]))
             gaiaquery = job.get_results()
 
-            job = Gaia.launch_job("SELECT * "
-                      "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
-                      "WHERE EDR3.dr3_source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT * "
+                          "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
+                          "WHERE EDR3.dr3_source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT * "
+                          "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
+                          "WHERE EDR3.dr3_source_id = "+str(tuple(data['Source'])[0]))
             dr2_neighbourhood = job.get_results()
             # TODO: select best DR2 ID if there are >1
             dr2_neighbourhood = dr2_neighbourhood['dr2_source_id','dr3_source_id']
         else:
-            job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
-                      "DR2.parallax,DR2.parallax_error,"
-                      "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
-                      "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
-                      "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
-                      "RRL.pf,RRL.p1_o,"
-                      "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
-                      "FROM gaiadr2.gaia_source AS DR2 "
-                      "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
-                      "ON DR2.source_id=RRL.source_id "
-                      "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
-                      "ON DR2.source_id=CEP.source_id "
-                      "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
+                          "DR2.parallax,DR2.parallax_error,"
+                          "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                          "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                          "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                          "RRL.pf,RRL.p1_o,"
+                          "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                          "FROM gaiadr2.gaia_source AS DR2 "
+                          "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                          "ON DR2.source_id=RRL.source_id "
+                          "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                          "ON DR2.source_id=CEP.source_id "
+                          "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
+                          "DR2.parallax,DR2.parallax_error,"
+                          "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                          "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                          "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                          "RRL.pf,RRL.p1_o,"
+                          "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                          "FROM gaiadr2.gaia_source AS DR2 "
+                          "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                          "ON DR2.source_id=RRL.source_id "
+                          "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                          "ON DR2.source_id=CEP.source_id "
+                          "WHERE DR2.source_id = "+str(tuple(data['Source'])[0]))
             gaiaquery = job.get_results()
     except requests.exceptions.ConnectionError:
         sleep(1)
@@ -571,42 +606,78 @@ if __name__ == '__main__':
             # Initialize BJ catalog
             service = vo.dal.TAPService("https://dc.zah.uni-heidelberg.de/__system__/tap/run/tap")
             # Query BJ catalog
-            BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
-                                BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
-                                BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
-                                FROM gedr3dist.litewithdist as BJ \
-                                WHERE BJ.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
+                                    BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
+                                    BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
+                                    FROM gedr3dist.litewithdist as BJ \
+                                    WHERE BJ.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
+                                    BJ.r_med_geo,BJ.r_lo_geo,BJ.r_hi_geo, \
+                                    BJ.r_med_photogeo,BJ.r_lo_photogeo,BJ.r_hi_photogeo \
+                                    FROM gedr3dist.litewithdist as BJ \
+                                    WHERE BJ.source_id = "+str(tuple(data['Source'])[0]))
             BJdist = BJdist.to_table()
 
-            job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
-                      "EDR3.parallax,EDR3.parallax_error,"
-                      "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
-                      "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
-                      "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
-                      "FROM gaiaedr3.gaia_source AS EDR3 "
-                      "WHERE EDR3.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
+                          "EDR3.parallax,EDR3.parallax_error,"
+                          "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
+                          "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
+                          "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
+                          "FROM gaiaedr3.gaia_source AS EDR3 "
+                          "WHERE EDR3.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT TOP 1000000 EDR3.source_id,EDR3.ra,EDR3.dec,"
+                          "EDR3.parallax,EDR3.parallax_error,"
+                          "EDR3.phot_g_mean_flux,EDR3.phot_g_mean_flux_error,EDR3.phot_g_mean_mag,"
+                          "EDR3.phot_bp_mean_flux,EDR3.phot_bp_mean_flux_error,EDR3.phot_bp_mean_mag,"
+                          "EDR3.phot_rp_mean_flux,EDR3.phot_rp_mean_flux_error,EDR3.phot_rp_mean_mag "
+                          "FROM gaiaedr3.gaia_source AS EDR3 "
+                          "WHERE EDR3.source_id = "+str(tuple(data['Source'])[0]))
             gaiaquery = job.get_results()
 
-            job = Gaia.launch_job("SELECT * "
-                      "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
-                      "WHERE EDR3.dr3_source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT * "
+                          "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
+                          "WHERE EDR3.dr3_source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT * "
+                          "FROM gaiaedr3.dr2_neighbourhood AS EDR3 "
+                          "WHERE EDR3.dr3_source_id = "+str(tuple(data['Source'])[0]))
             dr2_neighbourhood = job.get_results()
             # TODO: select best DR2 ID if there are >1
             dr2_neighbourhood = dr2_neighbourhood['dr2_source_id','dr3_source_id']
         else:
-            job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
-                      "DR2.parallax,DR2.parallax_error,"
-                      "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
-                      "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
-                      "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
-                      "RRL.pf,RRL.p1_o,"
-                      "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
-                      "FROM gaiadr2.gaia_source AS DR2 "
-                      "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
-                      "ON DR2.source_id=RRL.source_id "
-                      "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
-                      "ON DR2.source_id=CEP.source_id "
-                      "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
+            if len(data['Source']) >1:
+                job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
+                          "DR2.parallax,DR2.parallax_error,"
+                          "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                          "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                          "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                          "RRL.pf,RRL.p1_o,"
+                          "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                          "FROM gaiadr2.gaia_source AS DR2 "
+                          "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                          "ON DR2.source_id=RRL.source_id "
+                          "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                          "ON DR2.source_id=CEP.source_id "
+                          "WHERE DR2.source_id IN "+str(tuple(data['Source'])))
+            elif len(data['Source']) ==1:
+                job = Gaia.launch_job("SELECT TOP 1000000 DR2.source_id,DR2.ra,DR2.dec,"
+                          "DR2.parallax,DR2.parallax_error,"
+                          "DR2.phot_g_mean_flux,DR2.phot_g_mean_flux_error,DR2.phot_g_mean_mag,"
+                          "DR2.phot_bp_mean_flux,DR2.phot_bp_mean_flux_error,DR2.phot_bp_mean_mag,"
+                          "DR2.phot_rp_mean_flux,DR2.phot_rp_mean_flux_error,DR2.phot_rp_mean_mag,"
+                          "RRL.pf,RRL.p1_o,"
+                          "CEP.pf,CEP.p1_o,CEP.p2_o,CEP.p3_o "
+                          "FROM gaiadr2.gaia_source AS DR2 "
+                          "LEFT OUTER JOIN gaiadr2.vari_rrlyrae AS RRL "
+                          "ON DR2.source_id=RRL.source_id "
+                          "LEFT OUTER JOIN gaiadr2.vari_cepheid AS CEP "
+                          "ON DR2.source_id=CEP.source_id "
+                          "WHERE DR2.source_id = "+str(tuple(data['Source'])[0]))
             gaiaquery = job.get_results()
 
     # Calculate magnitude errors from fluxes
