@@ -39,18 +39,18 @@ GaiaID
  - `--Riess`   use Gaia parallax offset -46   μas for DR2 (Riess et al. 2018)
  - `--BJ`      use Gaia parallax offset -29   μas for DR2 (BJ et al. 2018)
  - `--Zinn`    use Gaia parallax offset -52.8 μas for DR2 (Zinn et al. 2019)
- 
+
 ### Notes
- 
+
  - We checked all available MWDUST implemeted dust maps. SFD is __not__ sensitive to distance!
  - Best dust map is Combined19, which gives you the E(B-V).
  - Absorption values are calculated using extinction vectors from Green et al. 2019 and [IsoClassify](https://github.com/danxhuber/isoclassify)
- 
+
 ### TODO
  - ~~query all input targets at once whereever it is possible~~
  - handle if Gaia EDR3 X DR2 returns w/ more than one targets
- 
- # 2. Get Fourier parameters
+
+# 2. Get Fourier parameters
 
 The purpose of this code is to safely determine the Fourier coefficients of any given dataset.
 
@@ -114,3 +114,8 @@ freq,period,P21,P31,R21,R31 = fitter.get_fourier_parameters()
  - `ncores` number of cores to be used, if *-1* all available cores will used
  - `kind` *sin* or *cos* – core function to be fitted
 
+# 3. OC fitter
+
+To calculate the O-C diagram of a variable star, each minima can be fitted with a given function and associated OC errors are estimated in different ways.
+- `MCMC version:` written in python2. Only given order polynomials are fitted, and errors are from MCMC realizations. _This is an old and slow method._
+- `Bruteforce:` Three kind of functions are available to fit each minimum. Polynomial, non-parametric and model (obtained from fitting the median of phase curve). Errors are from resampling the light curves using their brightness measurement errors. __This the newer and suggested solution!__
