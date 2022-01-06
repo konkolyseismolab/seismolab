@@ -60,59 +60,77 @@ The purpose of this code is to safely determine the Fourier coefficients of any 
 - pre-whitenning with the fitted curve
 - iteratively fitting a sine or cosine curve with frequency = *n* * *main frequency* to get Fourier parameters (n=[2,`nfreq`])
 - estimating errors...
-  - from covariance matrix of non-linear Levenberg-Marquardt fit
-  - or using bootstrap (generating subsamples and refitting those ones; **optional**)
+  - from analytically using the formulae of Breger, 1999, A&A, 349, 225
+  - using bootstrap (generating subsamples and refitting those ones; **optional**)
+  - using monte carlo (generating new samples and refitting those ones; **optional**)
 
 ## Example usage:
-Load (RR Lyr) dataset from Kepler data and save columns as new variables (*time*, *flux/mag* and *error* if available).
+Load (Cepheid) dataset from OGLE data and save columns as new variables (*time*, *flux/mag* and *error* if available).
 ```
-import lightkurve as lk
+lc = np.loadtxt("https://ogledb.astrouw.edu.pl/~ogle/OCVS/data/I/01/OGLE-LMC-CEP-0001.dat").T
 
-lc = lk.search_lightcurvefile('RR Lyr',quarter=1).download_all()
-lc = lc.PDCSAP_FLUX.stitch().remove_outliers().remove_nans()
-
-t = lc.time
-y = lc.flux
-yerr = lc.flux_err
+# Store results in separate arrays for clarity
+t = lc[0]
+y = lc[1]
+yerr = lc[2]
 ```
 
-Initialize fitter
+Do the Fourier calculation and fitting w/ maximum 10 iterative steps (i.e. determine max 10 harmonic components). The result will be two lists containing the Fourier parameters and their errors, respectively.
 ```
-fitter = FourierFitter()
-```
+# Initialize fitter by passing your light curve
+fitter = FourierFitter(t,y)
 
-Do the Fourier calculation and fitting w/ 3 iterative steps (i.e. determine 3 harmonic components). The result will be two lists containing the Fourier parameters and their errors, respectively.
-```
-nfreq = 3
-pfit,err = fitter.fit_freqs( t,y, yerr,
-                             nfreq = nfreq,
+# The same can be done with measurement errors
+#fitter = FourierFitter(t,y,yerr)
+
+# Do the Fourier calculation
+nfreq = 10  # Set to e.g. 9999 to fit all harmonics
+
+pfit,perr = fitter.fit_freqs( nfreq = nfreq,
                              plotting = False,
                              minimum_frequency=None,
-                             maximum_frequency=None,
+                             maximum_frequency=20,        # Overwrites nyquist_factor!
                              nyquist_factor=1,
-                             samples_per_peak=10,
-                             bootstrap=False,ntry=100,sample_size=0.9, parallel=False,ncores=-1,
+                             samples_per_peak=100,        # Oversampling factor in Lomb-Scargle spectrum calculation
+                             error_estimation='analytic', # Method of the error estimation
+                             ntry=1000,                   # Number of samplings if method is NOT analytic
+                             sample_size=0.999,           # Subsample size if method is bootstrap
+                             parallel=True,ncores=-1,
                              kind='sin' )
 ```
 
 Calculate the Fourier parameters
 ```
 freq,period,P21,P31,R21,R31 = fitter.get_fourier_parameters()
+
+print('freq = ',  freq.n,   freq.s)
+print('period = ',period.n, period.s)
+print('R21 = ',   R21.n,    R21.s)
+print('R31 = ',   R31.n,    R31.s)
+print('P21 = ',   P21.n,    P21.s)
+print('P31 = ',   P31.n,    P31.s)
 ```
 
 ## Available options
  - `nfreq` number of frequencies to be determined; the main frequency and its harmonics will be calculated
- - `plotting` *True* or *False* – plot the Lomb-Scargle periodograms and the fits?
- - `minimum_frequency` *None* or *value* - if *None* the samellest value will be used based on the sampling rate
- - `maximum_frequency` *None* or *value* - if *None* `nyquist_factor`**Nyquist frequency* will be used
- - `nyquist_factor` if `maximum_frequency` is *None*, `nyquist_factor`**Nyquist frequency* will be used as `maximum_frequency`
- - `samples_per_peak` oversampling factor
- - `bootstrap` *True* or *False* – use boostrap method to estimate errorbars (better if S/N is small, but ~10 times slower)
- - `ntry` number of random samplings in boostrap
- - `sample_size` ratio to generate subsamples
- - `parallel`*True* or *False* - do bootstrap parallel
- - `ncores` number of cores to be used, if *-1* all available cores will used
- - `kind` *sin* or *cos* – core function to be fitted
+ - `absolute_sigma` If `True`, error is used in an absolute sense and the estimated parameter covariance reflects these absolute values.
+ - `nfreq` The number of harmonics to be fitted. Pass a very large number to fit all harmonics.
+ - `plotting` If `True`, fitting steps will be displayed.
+ - `minimum_frequency` If specified, then use this minimum frequency rather than one chosen based on the size
+     of the baseline.
+ - `maximum_frequency` If specified, then use this maximum frequency rather than one chosen based on the average
+     nyquist frequency.
+ - `nyquist_factor` The multiple of the average nyquist frequency used to choose the maximum frequency
+     if ``maximum_frequency`` is not provided.
+ - `samples_per_peak` The approximate number of desired samples across the typical frequency peak.
+ - `kind` Harmonic function to be fitted.
+ - `error_estimation` If `bootstrap` or `montecarlo` is choosen, boostrap or monte carlo method will be used to estimate parameter uncertainties.
+     Otherwise given uncertainties are calculated analytically.
+ - `ntry` Number of resamplings for error estimation.
+ - `sample_size` The ratio of data points to be used for bootstrap error estimation in each step.
+     Applies only if `error_estimation` is set to `bootstrap`.
+ - `parallel` If `True`, sampling for error estimation is performed parallel to speed up the process.
+ - `ncores` Number of CPU cores to be used for parallel error estimation. If `-1`, then all available cores will be used.
 
 # 3. OC fitter
 
