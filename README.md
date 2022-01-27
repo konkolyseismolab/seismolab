@@ -137,3 +137,7 @@ print('P31 = ',   P31.n,    P31.s)
 To calculate the O-C diagram of a variable star, each minima can be fitted with a given function and associated OC errors are estimated in different ways.
 - `MCMC version:` written in python2. Only given order polynomials are fitted, and errors are from MCMC realizations. _This is an old and slow method._
 - `Bruteforce:` Three kind of functions are available to fit each minimum. Polynomial, non-parametric and model (obtained from fitting the median of phase curve). Errors are from resampling the light curves using their brightness measurement errors. __This the newer and suggested solution!__
+
+# 4. Template fitter
+
+Calculate amplitude, phase and zero point variations based on template fitting.
