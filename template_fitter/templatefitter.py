@@ -87,6 +87,7 @@ class TemplateFitter:
         saveplot=False,
         saveresult=False,
         filename='result',
+        showerrorbar=True,
 
         debug=False
         ):
@@ -128,6 +129,8 @@ class TemplateFitter:
             Save results as txt
         filename : str, default 'result'
             Beginning of txt filename.
+        showerrorbar : bool, default: True
+            Plot errorbars as well.
 
         debug : bool, default False
             Verbose output.
@@ -302,7 +305,7 @@ class TemplateFitter:
             ax[1].errorbar(BJDmidP,a0values,a0errorvalues,c='C1',alpha=0.5,label="ZP")
             if scale == 'mag': ax[1].invert_yaxis()
 
-            ax[2].errorbar(BJDmidP,avalues,aerrorvalues,c='r',label="Amp")
+            ax[2].errorbar(BJDmidP,avalues,aerrorvalues if showerrorbar else None,c='r',label="Amp",ecolor='lightgray')
             ax[2].set_xlabel("Time")
             #ylmin,ylmax = ax[2].get_ylim()
             #ylmin = min(ylmin,0.85)
@@ -311,7 +314,7 @@ class TemplateFitter:
             ax[2].set_title('P='+str(round(period,8)))
 
             ax2b=ax[2].twinx()
-            ax2b.errorbar(BJDmidP,psivalues,psierrorvalues,label="$\Phi$")
+            ax2b.errorbar(BJDmidP,psivalues,psierrorvalues if showerrorbar else None,label="$\Phi$",ecolor='lightgray')
             ylmin,ylmax = ax2b.get_ylim()
             ylmin = min(ylmin,psivalues.mean()-0.15)
             ylmax = max(ylmax,psivalues.mean()+0.15)
