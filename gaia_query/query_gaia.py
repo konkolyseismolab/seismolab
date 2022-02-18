@@ -6,9 +6,9 @@ import numpy as np
 #import pdb
 #import asfgrid
 from astropy.io import ascii
-from astropy.table import join,vstack,Table,Column,unique
+from astropy.table import join,Table,unique
 #from classify_direct import *
-from classify_direct_2_Mv import *
+from classify_direct_2_Mv import stparas,stparas_edr3,obsdata
 from astroquery.vizier import Vizier
 import warnings
 import requests
@@ -20,6 +20,9 @@ from astropy.io.ascii import InconsistentTableError
 import argparse
 from argparse import RawTextHelpFormatter
 import sys
+import mwdust
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 from astroquery.simbad import Simbad
 # Simbad.add_votable_fields('flux(J)','flux_bibcode(J)')
@@ -719,7 +722,7 @@ if __name__ == '__main__':
         for source in tqdm( gaiaquery[ np.isnan(gaiaquery['Period']) ] , total=max_):
             try:
                 # Query VSX catalog using Gaia DR2 ID
-                vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str')+'test',catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+                vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str'),catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
                 vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
                                         (vsxqueryper['DEJ2000']-source['dec'])**2
                 vsxqueryper.sort('dist')
@@ -727,7 +730,7 @@ if __name__ == '__main__':
                 gaiaquery['Period'][ gaiaquery['source_id'] == source['source_id'] ] = vsxqueryper
             except requests.exceptions.ConnectionError:
                 sleep(1)
-                vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str')+'test',catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
+                vsxqueryper = Vizier(timeout=300).query_object('Gaia DR2 '+source['source_id'].astype('str'),catalog='vsx',radius=Angle(10, unit='arcsec'))[0]
                 vsxqueryper['dist'] = (vsxqueryper['RAJ2000']-source['ra'])**2 + \
                                         (vsxqueryper['DEJ2000']-source['dec'])**2
                 vsxqueryper.sort('dist')
@@ -759,6 +762,10 @@ if __name__ == '__main__':
 
     gaiaquery.rename_columns(['source_id'],['Source'])
 
+    # Handle missing DR2 IDs
+    if useEDR3:
+        gaiaquery['dr2_source_id'][ gaiaquery['dr2_source_id'].mask ] = 0000000000
+
     # ------ SIMBAD catalog for V,J,H,K mags -----------
     # Query all objects from Simbad at once
     print('Downloading Simbad data for all stars...')
@@ -768,7 +775,10 @@ if __name__ == '__main__':
             sources.append('Gaia DR2 '+source.astype('str')  )
     else:
         for source in gaiaquery['dr2_source_id']:
-            sources.append('Gaia DR2 '+source.astype('str')  )
+            try:
+                sources.append('Gaia DR2 '+source.astype('str')  )
+            except:
+                sources.append('Gaia DR2 '+'0000000000'  )
 
     simbadcols = ['ID_Gaia','FLUX_V','FLUX_ERROR_V','FLUX_J','FLUX_ERROR_J','FLUX_H','FLUX_ERROR_H','FLUX_K','FLUX_ERROR_K']
     with warnings.catch_warnings(record=True) as w:
@@ -795,6 +805,8 @@ if __name__ == '__main__':
         else:
             simbadquery.rename_columns(['Source'],['dr2_source_id'])
             data['dr2_source_id'] = data['dr2_source_id'].astype('str')
+            # Handle missing DR2 IDs
+            data['dr2_source_id'][ data['dr2_source_id'].mask ] = 0000000000
             data = join(data,simbadquery,join_type='left',keys='dr2_source_id')
 
     data.rename_columns(['parallax','parallax_error','phot_g_mean_mag','phot_g_mean_mag_error','phot_bp_mean_mag','phot_bp_mean_mag_error','phot_rp_mean_mag','phot_rp_mean_mag_error'],
