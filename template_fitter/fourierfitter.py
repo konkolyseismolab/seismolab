@@ -262,7 +262,7 @@ class FourierFitter():
                     break
 
                 # --- Check if best period is longer than 2x data duration ---
-                if np.allclose(freq[np.argmax(power)] ,0) or 0.5/freq[np.argmax(power)] < 1/np.ptp(self.t):
+                if np.allclose(freq[np.argmax(power)] ,0) or 1./freq[np.argmax(power)] > 2*np.ptp(self.t):
                     warn('Period is longer than 2x data duration!\nSet minimum frequency to avoid problems!\nSkipping...')
                     break
 
