@@ -241,13 +241,13 @@ class FourierFitter():
 
                 # --- Check if max power is still above the noise level ---
                 ls = LombScargle(self.t, yres, nterms=1)
-                minf = (i+1)*best_freq-0.5
+                minf = (i+1)*best_freq - max(0.5,10*1/np.ptp(self.t))
                 if minf<0 : minf = 0
 
                 with np.errstate(divide='ignore',invalid='ignore'):
                     freq, power = ls.autopower(normalization='psd',
                                                minimum_frequency=minf,
-                                               maximum_frequency=(i+1)*best_freq+0.5,
+                                               maximum_frequency=(i+1)*best_freq + max(0.5,10*1/np.ptp(self.t)),
                                                samples_per_peak=samples_per_peak)
 
                 goodpts = np.isfinite(power)
