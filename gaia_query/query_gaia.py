@@ -497,14 +497,14 @@ if __name__ == '__main__':
 
     # ------ Guess input file format and load it -----------
     try:
-        data=ascii.read(infilename,names=['Source','ra','dec','Name'])
+        data=ascii.read(infilename,names=['Source','ra','dec','Name'],data_start=0)
         data = data['Source','Name']
     except InconsistentTableError:
         try:
-            data=ascii.read(infilename,names=['Source','Name'])
+            data=ascii.read(infilename,names=['Source','Name'],data_start=0)
         except InconsistentTableError:
             try:
-                data=ascii.read(infilename,names=['Source'])
+                data=ascii.read(infilename,names=['Source'],data_start=0)
             except InconsistentTableError:
                 warnings.warn('\nInconsistent Input Data!\n \
                 Inputfile must be in one of the following column formats:\n \
