@@ -70,7 +70,7 @@ def _query_simbad(targs):
     return simbadqueryresult
 
 def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_offset=None):
-    """
+    '''
     ``query_gaia`` performs Gaia database query and
     calculates distance, reddening corrected apparent
     and absolute magnitudes
@@ -100,7 +100,7 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
     -------
     time : Astropy Table
         Calculated distance, brightness and absorption values.
-    """
+    '''
 
     # --- Convert target list to Astropy Table ---
     targets = np.atleast_1d(targets).ravel().astype(int)
