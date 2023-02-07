@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'numpydoc',
     "nbsphinx",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # The suffix(es) of source filenames.

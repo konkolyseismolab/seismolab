@@ -1,18 +1,24 @@
 .. seismolab documentation master file, created by
-   sphinx-quickstart on Wed Aug  3 15:43:08 2022.
+   sphinx-quickstart on Tue Feb 7 15:43:08 2023.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to seismolab's documentation!
-=====================================
+seismolab: tools for analyzing space-based observations
+=======================================================
 
-**seismolab** is a Python library for cooks and food lovers that
-creates recipes mixing random ingredients.  It pulls data from the `Open Food
-Facts database <https://world.openfoodfacts.org/>`_ and offers a *simple* and
-*intuitive* API.
+**seismolab** is an open-source python framework for downloading, analyzing, and visualizing data of variable stars from Kepler-TESS-Gaia surveys.
 
-Check out the :doc:`usage2` section for further information, including how to
-:ref:`install <installation>` the project.
+It has four main modules:
+
+.. hlist::
+   :columns: 1
+
+   * The *Gaia* module combines Gaia data with the Bailer-Jones distance catalog, galactic extinction maps and magnitudes from the Simbad catalog.
+   * The *fourier* module calculates the Fourier coefficients and Fourier parameters of light curves.
+   * The *OC* module fits a model to the extrema of a light curve to extract the minimum or maximum times and derives an O-C diagram.
+   * The *template* module fits a set of Fourier harmonics to a light curve and derives the temporal variation of the amplitude/phase/zero point of the dominant variation.
+
+To starts using seismolab, check out the :ref:`installation <installation>` first.
 
 
 .. toctree::
@@ -24,8 +30,10 @@ Contents
 
 .. toctree::
 
+  about
+  installation
   query_gaia
-  getting_started
+  query_gaia_cmd
   fourier
   usage2
   get_fourier_params
@@ -33,6 +41,11 @@ Contents
 .. toctree::
 
   api
+
+Bug reports
+-----------
+
+**seismolab** is an open source project under the MIT license. The source code is available on `GitHub <https://github.com/konkolyseismolab/seismolab>`_. In case of any questions or problems, please contact us via the `Git Issues <https://github.com/konkolyseismolab/seismolab/issues>`_.
 
 Indices and tables
 ------------------

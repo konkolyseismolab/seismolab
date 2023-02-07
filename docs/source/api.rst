@@ -3,6 +3,8 @@
 API
 ===
 
+.. autofunction:: seismolab.gaia.query_gaia
+
 .. autoclass:: seismolab.fourier.MultiHarmonicFitter
     :members:
 
