@@ -241,9 +241,9 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
             outdata.append(result)
 
     outdataTable = Table(names=['Source',
-                          'dis','disep','disem',
+                          'dist','distep','distem',
                           'lon_deg', 'lat_deg',
-                          'ag','agep','agem','MG','MGep','MGem','mG','mGep','mGem',
+                          'aG','aGep','aGem','MG','MGep','MGem','mG','mGep','mGem',
                           'aBP','aBPep','aBPem','MBP','MBPep','MBPem','mBP','mBPep','mBPem',
                           'aRP','aRPep','aRPem','MRP','MRPep','MRPem','mRP','mRPep','mRPem',
                           'aB','aBep','aBem','MB','MBep','MBem','mB','mBep','mBem',
@@ -270,11 +270,20 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
         targets.remove_columns(['r_med_photogeo', 'r_lo_photogeo', 'r_hi_photogeo'])
     targets = join(targets,outdataTable,join_type='left',keys='Source')
 
+    targets.rename_columns(['plx','sig_plx','gamag','sig_gamag',\
+                            'bpmag','sig_bpmag','rpmag','sig_rpmag',\
+                            'jmag','sig_jmag','hmag','sig_hmag','kmag','sig_kmag',\
+                            'bmag','sig_bmag','vmag','sig_vmag'],
+                            ['parallax','sig_parallax','Gmag','sig_Gmag',\
+                            'BPmag','sig_BPmag','RPmag','sig_RPmag',\
+                            'Jmag','sig_Jmag','Hmag','sig_Hmag','Kmag','sig_Kmag',\
+                            'Bmag','sig_Bmag','Vmag','sig_Vmag'])
+
     return targets
 
 def query_from_commandline():
     # --- Create the parser ---
-    my_parser = argparse.ArgumentParser(description='Gaia Query w/ extinction correction',
+    my_parser = argparse.ArgumentParser(description='Query Gaia catalog w/ extinction correction',
                                         formatter_class=RawTextHelpFormatter)
 
     # --- Add the arguments ---
@@ -291,7 +300,7 @@ def query_from_commandline():
                            choices=[2,3],
                            help='Gaia DataRelease number.')
 
-    my_parser.add_argument('--photo',
+    my_parser.add_argument('--photodist',
                            action='store_true',
                            help='Use photogeometric distance instead of geometric ones.')
 
@@ -308,7 +317,7 @@ def query_from_commandline():
     # --- Execute parse_args() ---
     args = my_parser.parse_args()
     gaiaDR = args.gaiaDR
-    use_photodist = args.photo
+    use_photodist = args.photodist
     dustmodel = args.dustmodel
 
     # ------ Define filenames -----------
