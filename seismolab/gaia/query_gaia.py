@@ -45,13 +45,15 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 # Update returned Simbad fields
 from astroquery.simbad import Simbad
 Simbad.add_votable_fields('ids',
+                          'flux(B)','flux_error(B)',
                           'flux(V)','flux_error(V)',
                           'flux(J)','flux_error(J)',
                           'flux(H)','flux_error(H)',
                           'flux(K)','flux_error(K)')
 
 def _query_simbad(targs):
-    simbadcols = ['IDS','FLUX_V','FLUX_ERROR_V','FLUX_J','FLUX_ERROR_J','FLUX_H','FLUX_ERROR_H','FLUX_K','FLUX_ERROR_K']
+    simbadcols = ['IDS','FLUX_B','FLUX_ERROR_B','FLUX_V','FLUX_ERROR_V',\
+                  'FLUX_J','FLUX_ERROR_J','FLUX_H','FLUX_ERROR_H','FLUX_K','FLUX_ERROR_K']
 
     with warnings.catch_warnings(record=True):
         simbadqueryresult = Simbad.query_objects(targs)
@@ -215,8 +217,8 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
     targets.rename_columns(['FLUX_J','FLUX_ERROR_J','FLUX_H','FLUX_ERROR_H','FLUX_K','FLUX_ERROR_K'],
                         ['jmag','sig_jmag','hmag','sig_hmag','kmag','sig_kmag'])
 
-    targets.rename_columns(['FLUX_V','FLUX_ERROR_V'],
-                        ['vmag','sig_vmag'])
+    targets.rename_columns(['FLUX_B','FLUX_ERROR_B','FLUX_V','FLUX_ERROR_V'],
+                        ['bmag','sig_bmag','vmag','sig_vmag'])
     targets = targets.filled(-99)
 
     # ------ Start calculations -----------
@@ -244,11 +246,13 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
                           'ag','agep','agem','MG','MGep','MGem','mG','mGep','mGem',
                           'aBP','aBPep','aBPem','MBP','MBPep','MBPem','mBP','mBPep','mBPem',
                           'aRP','aRPep','aRPem','MRP','MRPep','MRPem','mRP','mRPep','mRPem',
+                          'aB','aBep','aBem','MB','MBep','MBem','mB','mBep','mBem',
                           'aV','aVep','aVem','MV','MVep','MVem','mV','mVep','mVem',
                           'aJ','aJep','aJem','MJ','MJep','MJem','mJ','mJep','mJem',
                           'aH','aHep','aHem','MH','MHep','MHem','mH','mHep','mHem',
                           'aK','aKep','aKem','MK','MKep','MKem','mK','mKep','mKem'],
                           dtype=('i8', 'f8', 'f8', 'f8', 'f8', 'f8',
+                                'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8',
                                 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8',
                                 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8',
                                 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8',

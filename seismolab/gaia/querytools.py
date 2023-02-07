@@ -17,6 +17,9 @@ def get_dist_absmag(i,data,dustmodel,plx_offset):
         aRP,aRPep,aRPem = np.nan,np.nan,np.nan
         absRP,absRPep,absRPem = np.nan,np.nan,np.nan
         appRP,appRPep,appRPem = np.nan,np.nan,np.nan
+        aB,aBep,aBem = np.nan,np.nan,np.nan
+        absB,absBep,absBem = np.nan,np.nan,np.nan
+        appB,appBep,appBem = np.nan,np.nan,np.nan
         aV,aVep,aVem = np.nan,np.nan,np.nan
         absV,absVep,absVem = np.nan,np.nan,np.nan
         appV,appVep,appVem = np.nan,np.nan,np.nan
@@ -42,6 +45,9 @@ def get_dist_absmag(i,data,dustmodel,plx_offset):
                         aRP,aRPep,aRPem,
                         absRP,absRPep,absRPem,
                         appRP,appRPep,appRPem,
+                        aB,aBep,aBem,
+                        absB,absBep,absBem,
+                        appB,appBep,appBem,
                         aV,aVep,aVem,
                         absV,absVep,absVem,
                         appV,appVep,appVem,
@@ -93,6 +99,18 @@ def get_dist_absmag(i,data,dustmodel,plx_offset):
     aRP,aRPep,aRPem = paras.avs, paras.avsep, paras.avsem
     absRP,absRPep,absRPem = paras.absmag, paras.absmagep, paras.absmagem
     appRP,appRPep,appRPem = paras.appmag,paras.appmagep,paras.appmagem
+
+    # ------ B mag -----------
+    x=obsdata()
+    x.addcoords(data['ra'][i],data['dec'][i])
+    x.addbvri([data['bmag'][i],-99.,-99.,-99.],[data['sig_bmag'][i],-99.,-99.,-99.])
+    x.addplx((data['plx'][i])/1e3 + plx_offset/1e3 , data['sig_plx'][i]/1e3)
+
+    paras=stparas(input=x,dustmodel=dustmodel)
+
+    aB,aBep,aBem = paras.avs, paras.avsep, paras.avsem
+    absB,absBep,absBem = paras.absmag, paras.absmagep, paras.absmagem
+    appB,appBep,appBem = paras.appmag,paras.appmagep,paras.appmagem
 
     # ------ V mag -----------
     x=obsdata()
@@ -158,6 +176,9 @@ def get_dist_absmag(i,data,dustmodel,plx_offset):
                     aRP,aRPep,aRPem,
                     absRP,absRPep,absRPem,
                     appRP,appRPep,appRPem,
+                    aB,aBep,aBem,
+                    absB,absBep,absBem,
+                    appB,appBep,appBem,
                     aV,aVep,aVem,
                     absV,absVep,absVem,
                     appV,appVep,appVem,
@@ -221,6 +242,21 @@ def get_dist_absmag_edr3(i,data,dustmodel,plx_offset,use_photodist):
     absRP,absRPep,absRPem = paras.absmag, paras.absmagep, paras.absmagem
     appRP,appRPep,appRPem = paras.appmag,paras.appmagep,paras.appmagem
 
+    # ------ B mag -----------
+    x=obsdata()
+    x.addcoords(data['ra'][i],data['dec'][i])
+    x.addbvri([data['bmag'][i],-99.,-99.,-99.],[data['sig_bmag'][i],-99.,-99.,-99.])
+    if use_photodist:
+        x.addBJdis(data['r_med_photogeo'][i],data['r_hi_photogeo'][i],data['r_lo_photogeo'][i])
+    else:
+        x.addBJdis(data['r_med_geo'][i],data['r_hi_geo'][i],data['r_lo_geo'][i])
+
+    paras=stparas_edr3(input=x,dustmodel=dustmodel)
+
+    aB,aBep,aBem = paras.avs, paras.avsep, paras.avsem
+    absB,absBep,absBem = paras.absmag, paras.absmagep, paras.absmagem
+    appB,appBep,appBem = paras.appmag,paras.appmagep,paras.appmagem
+
     # ------ V mag -----------
     x=obsdata()
     x.addcoords(data['ra'][i],data['dec'][i])
@@ -297,6 +333,9 @@ def get_dist_absmag_edr3(i,data,dustmodel,plx_offset,use_photodist):
                     aRP,aRPep,aRPem,
                     absRP,absRPep,absRPem,
                     appRP,appRPep,appRPem,
+                    aB,aBep,aBem,
+                    absB,absBep,absBem,
+                    appB,appBep,appBem,
                     aV,aVep,aVem,
                     absV,absVep,absVem,
                     appV,appVep,appVem,
@@ -384,6 +423,12 @@ def stparas(input,dustmodel):
             else: mape = 0.02
             avtoext=extfactors.av
 
+        elif (input.bmag > -99.):
+            map = input.bmag
+            if input.bmage>-99: mape = input.bmage
+            else: mape = 0.02
+            avtoext=extfactors.ab
+
         elif (input.imag > -99.):
             map = input.imag
             if input.image>-99: mape = input.image
@@ -419,11 +464,13 @@ def stparas(input,dustmodel):
             if input.gamage>-99: mape = input.gamage
             else: mape = 0.02
             avtoext=extfactors.aga
+
         elif (input.bpmag > -99.):
             map = input.bpmag
             if input.bpmage>-99: mape = input.bpmage
             else: mape = 0.02
             avtoext=extfactors.abp
+
         elif (input.rpmag > -99.):
             map = input.rpmag
             if input.rpmage>-99: mape = input.rpmage
@@ -556,6 +603,12 @@ def stparas_edr3(input,dustmodel):
         else: mape = 0.02
         avtoext=extfactors.av
 
+    elif (input.bmag > -99.):
+        map = input.bmag
+        if input.bmage>-99: mape = input.bmage
+        else: mape = 0.02
+        avtoext=extfactors.ab
+
     elif (input.imag > -99.):
         map = input.imag
         if input.image>-99: mape = input.image
@@ -591,11 +644,13 @@ def stparas_edr3(input,dustmodel):
         if input.gamage>-99: mape = input.gamage
         else: mape = 0.02
         avtoext=extfactors.aga
+
     elif (input.bpmag > -99.):
         map = input.bpmag
         if input.bpmage>-99: mape = input.bpmage
         else: mape = 0.02
         avtoext=extfactors.abp
+
     elif (input.rpmag > -99.):
         map = input.rpmag
         if input.rpmage>-99: mape = input.rpmage
@@ -766,7 +821,6 @@ class obsdata():
 class resdata():
     def __init__(self):
         self.avs = -99.
-        self.avse = -99.
         self.avsep = -99.
         self.avsem = -99.
         self.dis = -99.
