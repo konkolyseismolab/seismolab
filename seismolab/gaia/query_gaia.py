@@ -89,7 +89,7 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
         See `mwdust` documentation for available maps:
         https://github.com/jobovy/mwdust
     plx_offset : str or float, default: 0.0
-        If float, the parallax offset to be used to get distances in mas.
+        If float, the parallax offset (in mas) to be added to the parallaxes.
         It also can can be one of following names:
             "Stassun", which is +0.08   mas (Stassun et al. 2018)
             "Riess",   which is +0.046  mas (Riess et al. 2018)
@@ -314,6 +314,10 @@ def query_from_commandline():
     my_parser.add_argument('--BJ', action='store_true', help='use plx zeropoint -29   uas for DR2 (BJ et al. 2018)')
     my_parser.add_argument('--Zinn', action='store_true', help='use plx zeropoint -52.8 uas for DR2 (Zinn et al. 2019)')
 
+    my_parser.add_argument('--plxoffset',
+                           type=float,
+                           help='The parallax offset (in mas) to be added to the parallaxes.')
+
     # --- Execute parse_args() ---
     args = my_parser.parse_args()
     gaiaDR = args.gaiaDR
@@ -325,15 +329,15 @@ def query_from_commandline():
     lenOfExtension = len(infilename.split('.')[-1])
     infilenameShort = infilename[:-(lenOfExtension+1)] # remove extension
     if gaiaDR == 2:
-        if args.Stassun: outfilename = infilenameShort+'_MgaiaJHK_DR2_Stassun.txt'
-        elif args.Riess: outfilename = infilenameShort+'_MgaiaJHK_DR2_Riess.txt'
-        elif args.BJ:    outfilename = infilenameShort+'_MgaiaJHK_DR2_BJ.txt'
-        elif args.Zinn:  outfilename = infilenameShort+'_MgaiaJHK_DR2_Zinn.txt'
-        else:            outfilename = infilenameShort+'_MgaiaJHK_DR2.txt'
+        if args.Stassun: outfilename = infilenameShort+'_Mgaia_DR2_Stassun.txt'
+        elif args.Riess: outfilename = infilenameShort+'_Mgaia_DR2_Riess.txt'
+        elif args.BJ:    outfilename = infilenameShort+'_Mgaia_DR2_BJ.txt'
+        elif args.Zinn:  outfilename = infilenameShort+'_Mgaia_DR2_Zinn.txt'
+        else:            outfilename = infilenameShort+'_Mgaia_DR2.txt'
     elif gaiaDR == 3 and not use_photodist:
-        outfilename = infilenameShort+'_MgaiaJHK_DR3.txt'
+        outfilename = infilenameShort+'_Mgaia_DR3.txt'
     elif use_photodist:
-        outfilename = infilenameShort+'_MgaiaJHK_DR3_photo.txt'
+        outfilename = infilenameShort+'_Mgaia_DR3_photo.txt'
 
     # ------ Load input file -----------
     targets = np.genfromtxt(infilename,usecols=0,dtype=int)
@@ -344,6 +348,8 @@ def query_from_commandline():
     elif args.Riess: plx_offset = "Riess"
     elif args.BJ:    plx_offset = "BJ"
     elif args.Zinn:  plx_offset = "Zinn"
+    elif isinstance(args.plxoffset,float):
+        plx_offset = args.plxoffset
     else:            plx_offset = None
 
     # --- Run Gaia query ---
