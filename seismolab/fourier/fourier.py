@@ -383,7 +383,7 @@ class MultiHarmonicFitter(BaseFitter):
                     warn(err)
 
                     self.pfit = self.perr = [np.nan]*(3+1)
-                    return self.pfit, self.perr
+                    return np.asarray(self.pfit), np.asarray(self.perr)
 
             else:
                 # --- Check if frequency is greater than maximum_frequency ---
@@ -398,13 +398,13 @@ class MultiHarmonicFitter(BaseFitter):
 
                 # --- Check if max power is still above the noise level ---
                 ls = LombScargle(self.t, yres, nterms=1)
-                minf = (i+1)*best_freq-0.5
+                minf = (i+1)*best_freq - max(0.5,10*1/np.ptp(self.t))
                 if minf<0 : minf = 0
 
                 with np.errstate(divide='ignore',invalid='ignore'):
                     freq, power = ls.autopower(normalization='psd',
                                                minimum_frequency=minf,
-                                               maximum_frequency=(i+1)*best_freq+0.5,
+                                               maximum_frequency=(i+1)*best_freq + max(0.5,10*1/np.ptp(self.t)),
                                                samples_per_peak=samples_per_peak)
 
                 goodpts = np.isfinite(power)
@@ -419,7 +419,7 @@ class MultiHarmonicFitter(BaseFitter):
                     break
 
                 # --- Check if best period is longer than 2x data duration ---
-                if np.allclose(freq[np.argmax(power)] ,0) or 0.5/freq[np.argmax(power)] < 1/np.ptp(self.t):
+                if np.allclose(freq[np.argmax(power)] ,0) or 1./freq[np.argmax(power)] > 2*np.ptp(self.t):
                     warn('Period is longer than 2x data duration!\nSet minimum frequency to avoid problems!\nSkipping...')
                     break
 
@@ -462,9 +462,9 @@ class MultiHarmonicFitter(BaseFitter):
 
                 plt.figure(figsize=(15,3))
                 plt.subplot(121)
-                plt.plot(freq, power)
+                plt.plot(freq, 2*np.sqrt(power/len(self.t))  )
                 plt.xlabel('Frequency (c/d)')
-                plt.ylabel('LS power')
+                plt.ylabel('Amplitude')
                 plt.grid()
                 plt.subplot(122)
                 plt.plot(self.t%per/per,yres-pfit[-1],'k.')
@@ -536,7 +536,7 @@ class MultiHarmonicFitter(BaseFitter):
                 self.pfit = pfit
                 self.perr = self.get_analytic_uncertainties() + [ np.sqrt(np.diag(pcov))[-1] ]
 
-                return self.pfit, self.perr
+                return np.asarray(self.pfit), np.asarray(self.perr)
 
             elif error_estimation != 'analytic' and refit is False:
                 # use bootstrap or MC to get realistic errors (bootstrap = get subsample and redo fit n times)
@@ -629,11 +629,11 @@ class MultiHarmonicFitter(BaseFitter):
                     self.y = yorig
                     self.pfit = pfit
                     self.perr = perr
-                    return self.pfit, self.perr
+                    return np.asarray(self.pfit), np.asarray(self.perr)
 
                 self.pfit = pfit
                 self.perr = perr
-                return self.pfit, self.perr
+                return np.asarray(self.pfit), np.asarray(self.perr)
 
             elif error_estimation != 'analytic' and refit:
                 # get new errors for shifted light curve
@@ -677,7 +677,7 @@ class MultiHarmonicFitter(BaseFitter):
 
                 self.pfit = pfit
                 self.perr = newperr
-                return self.pfit, self.perr
+                return np.asarray(self.pfit), np.asarray(self.perr)
 
         except RuntimeError:
             # if fit all components at once fails return previous results, and errors from covariance matrix
@@ -979,7 +979,7 @@ class MultiFrequencyFitter(BaseFitter):
                 break
 
             # --- Check if best period is longer than 2x data duration ---
-            if np.allclose(freq[np.argmax(power)] ,0) or 0.5/freq[np.argmax(power)] < 1/np.ptp(self.t):
+            if np.allclose(freq[np.argmax(power)] ,0) or 1./freq[np.argmax(power)] > 2*np.ptp(self.t):
                 warn('Period is longer than 2x data duration!\nSet minimum frequency to avoid problems!\nSkipping...')
                 break
 
