@@ -36,7 +36,6 @@ Contents
   query_gaia_cmd
   fourier
   usage2
-  get_fourier_params
 
 .. toctree::
 
