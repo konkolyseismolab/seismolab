@@ -2,8 +2,7 @@
 
 ## **Seismolab**
 
-[![pip](https://img.shields.io/badge/pip-install%20autoeap-blue.svg)](https://pypi.org/project/autoeap/)
-[![Image](https://img.shields.io/badge/tutorials-%E2%9C%93-blue.svg)](https://github.com/konkolyseismolab/autoeap/tree/master/examples)
+[![pip](https://img.shields.io/badge/pip-install%20seismolab-blue.svg)](https://pypi.org/project/seismolab/)
 [![Image](https://img.shields.io/badge/arXiv-2112.007496-blue.svg)](https://arxiv.org/abs/2112.07496v1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 [![](https://img.shields.io/badge/Homepage-Seismolab-brightgreen)](https://konkoly.hu/staff/lmolnar/seismolab/)
