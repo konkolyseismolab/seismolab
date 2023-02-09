@@ -1,6 +1,6 @@
 <div align="center">
 
-## **Seismolab**
+# **Seismolab**
 
 Codes to process RRL/Cepheid data from Kepler-TESS-Gaia surveys.
 
