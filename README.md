@@ -2,6 +2,8 @@
 
 ## **Seismolab**
 
+Codes to process RRL/Cepheid data from Kepler-TESS-Gaia surveys.
+
 [![pip](https://img.shields.io/badge/pip-install%20seismolab-blue.svg)](https://pypi.org/project/seismolab/)
 [![Image](https://img.shields.io/badge/arXiv-2112.007496-blue.svg)](https://arxiv.org/abs/2112.07496v1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
@@ -12,9 +14,7 @@
 
 --------------------------------------------------------------------------------
 
-Codes to process RRL/Cepheid data from Kepler-TESS-Gaia surveys.
-
-# Install seismolab with pip:
+## Install seismolab with pip:
 
 ```bash
 pip install seismolab
