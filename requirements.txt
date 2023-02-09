@@ -12,3 +12,4 @@ h5py
 ephem
 astroquery
 numpydoc
+nbsphinx
