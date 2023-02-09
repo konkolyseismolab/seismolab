@@ -7,6 +7,7 @@
 [![Image](https://img.shields.io/badge/arXiv-2112.007496-blue.svg)](https://arxiv.org/abs/2112.07496v1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 [![](https://img.shields.io/badge/Homepage-Seismolab-brightgreen)](https://konkoly.hu/staff/lmolnar/seismolab/)
+<a href="https://seismolab.readthedocs.io/en/latest/index.html"><img src="https://img.shields.io/badge/read-the_docs-4D827F.svg?style=flat"/></a>
 
 </div>
 
@@ -14,17 +15,13 @@
 
 Codes to process RRL/Cepheid data from Kepler-TESS-Gaia surveys.
 
-# Installation and dependencies
-
-To install the package, use:
+# Install seismolab with pip:
 
 ```bash
 pip install seismolab
 ```
 
-## Usage
-
-See the documentation.
+For more information on how to install and use seismolab, please refer to the [documentation](https://seismolab.readthedocs.io/en/latest/index.html).
 
 ## Contributing
 Feel free to open PR / Issue, or contact me [here](bodi.attila@csfk.org).
