@@ -2,7 +2,7 @@
 
 # **Seismolab**
 
-Codes to process RRL/Cepheid data from Kepler-TESS-Gaia surveys.
+Open-source python framework for downloading, analyzing, and visualizing data of variable stars from Kepler-TESS-Gaia surveys.
 
 [![pip](https://img.shields.io/badge/pip-install%20seismolab-blue.svg)](https://pypi.org/project/seismolab/)
 [![Image](https://img.shields.io/badge/arXiv-2112.007496-blue.svg)](https://arxiv.org/abs/2112.07496v1)
