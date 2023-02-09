@@ -282,8 +282,8 @@ class MultiHarmonicFitter(BaseFitter):
         ncores: int, default: -1
             Number of CPU cores to be used for parallel error estimation. If `-1`, then all available
             cores will be used.
-        best_freq : float
-            If given, then this frequncy will be used as the basis of the harmonics,
+        best_freq : float, default: None
+            If given, then this frequency will be used as the basis of the harmonics,
             instead of calculating a Lomb-Scargle spectrum to get a frequency.
 
         Returns
