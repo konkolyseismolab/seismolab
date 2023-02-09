@@ -35,7 +35,7 @@ Contents
   query_gaia
   query_gaia_cmd
   fourier
-  usage2
+  template_fitting
 
 .. toctree::
 
