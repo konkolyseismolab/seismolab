@@ -1,9 +1,7 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
 from astropy.convolution import Gaussian1DKernel, convolve
-from joblib import Parallel, delayed
 from psutil import cpu_count
 from joblib import parallel_backend
 
@@ -14,7 +12,27 @@ from seismolab.fourier import MultiHarmonicFitter
 
 from matplotlib.collections import LineCollection
 
+import joblib
+from joblib import delayed
+from tqdm.auto import tqdm
+
 __all__ = ['TemplateFitter']
+
+class ProgressParallel(joblib.Parallel):
+    def __init__(self, total=None, **kwds):
+        self.total = total
+        super().__init__(**kwds)
+    def __call__(self, *args, **kwargs):
+        with tqdm() as self._pbar:
+            return joblib.Parallel.__call__(self, *args, **kwargs)
+
+    def print_progress(self):
+        if self.total is None:
+            self._pbar.total = self.n_dispatched_tasks
+        else:
+            self._pbar.total = self.total
+        self._pbar.n = self.n_completed_tasks
+        self._pbar.refresh()
 
 def make_segments(x, y):
     '''
@@ -57,7 +75,9 @@ def splitthem(inputBJD, inputflux,fluxerror,span,step,n):
     else:
         dfbitlistfluxerror = fluxerror[um]
 
-    return dfbitlistBJD, dfbitlistflux, dfbitlistfluxerror
+    midBJD = inputBJD[0]+step*n + span/2
+
+    return midBJD, dfbitlistBJD, dfbitlistflux, dfbitlistfluxerror
 
 def modulated_lc_model(time, a0, a, dPhi, pfit, kind):
     """
@@ -136,7 +156,7 @@ def smooth_data(a0values,avalues,psivalues,gapat,smoothness_factor,step):
 
     return a0values_out, avalues_out, psivalues_out
 
-def fit_lightcurve_chunk(bitBJD,bitflux,bitfluxerror,
+def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
                         LSPfreq,span,pfit,
                         duty_cycle,error_estimation,kind,
                         debug=False):
@@ -201,7 +221,7 @@ def fit_lightcurve_chunk(bitBJD,bitflux,bitfluxerror,
 
         perr_curvefit = np.sqrt(np.diag(_pcov))
 
-        return np.min(bitBJD) + np.ptp(bitBJD)/2, _pfit[0], perr_curvefit[0], _pfit[1], perr_curvefit[1], _pfit[2], perr_curvefit[2]
+        return midBJD, _pfit[0], perr_curvefit[0], _pfit[1], perr_curvefit[1], _pfit[2], perr_curvefit[2]
 
 class TemplateFitter:
     def __init__(self, time,flux,fluxerror=None):
@@ -303,6 +323,10 @@ class TemplateFitter:
             Minimum duty cycle that is needed in case of each light curve chunk.
             Should be between 0-1.
 
+        best_freq : float, default: None
+            If given, then this frequency will be used as the basis of the harmonics,
+            instead of calculating a Lomb-Scargle spectrum to get a frequency.
+
         debug : bool, default False
             Verbose output.
 
@@ -369,13 +393,14 @@ class TemplateFitter:
         for counter in range( int(np.ceil( self.time.ptp() / (step*1/LSPfreq))) ):
 
             # ---- Get chunk ----
-            bitBJD,bitflux,bitfluxerror=splitthem(self.time,self.flux,self.fluxerror,
+            midBJD,bitBJD,bitflux,bitfluxerror=splitthem(
+                                                    self.time,self.flux,self.fluxerror,
                                                     span=span*1/LSPfreq,
                                                     step=step*1/LSPfreq,
                                                     n=counter)
 
             if debug:
-                result = fit_lightcurve_chunk(bitBJD,bitflux,bitfluxerror,
+                result = fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
                                             LSPfreq,span,pfit,
                                             duty_cycle,error_estimation,kind,
                                             debug)
@@ -403,7 +428,7 @@ class TemplateFitter:
 
                     plt.show()
             else:
-                params.append( [bitBJD,bitflux,bitfluxerror,
+                params.append( [midBJD,bitBJD,bitflux,bitfluxerror,
                                 LSPfreq,span,pfit,
                                 duty_cycle,error_estimation,kind,
                                 debug] )
@@ -412,7 +437,7 @@ class TemplateFitter:
             ncores = cpu_count(logical=False)
 
             with parallel_backend('multiprocessing'):
-                result = Parallel(n_jobs=ncores)(delayed(fit_lightcurve_chunk)(*par) for par in params)
+                result = ProgressParallel(n_jobs=ncores,total=len(params))(delayed(fit_lightcurve_chunk)(*par) for par in params)
             result = np.asarray(result)
 
             BJDmidP        = result[:,0]
@@ -512,7 +537,7 @@ class TemplateFitter:
 
             ax2b=ax[2].twinx()
             ax2b.errorbar(np.insert(BJDmidP,gapat,np.nan),np.insert(psivalues,gapat,np.nan),
-                          np.insert(psierrorvalues,gapat,np.nan) if showerrorbar else None,label="$\Phi$",ecolor='lightgray',c='C0')
+                          np.insert(psierrorvalues,gapat,np.nan) if showerrorbar else None,label=r"$\Phi$",ecolor='lightgray',c='C0')
             ylmin,ylmax = ax2b.get_ylim()
             ylmin = min(ylmin,psivalues.mean()-0.10)
             ylmax = max(ylmax,psivalues.mean()+0.10)
@@ -547,16 +572,25 @@ class TemplateFitter:
                         fmt='%.8f',
                         header='Calculated with period of %.6f\nTIME AVALS AVALS_ERR PSIVALS PSIVALS_ERR ZP ZP_ERR' % period)
 
+        # Store OC curve results
+        self.oc_time        = np.array(BJDmidP)
+        self.avalues        = avalues
+        self.aerrorvalues   = aerrorvalues
+        self.psivalues      = psivalues
+        self.psierrorvalues = psierrorvalues
+        self.a0values       = a0values
+        self.a0errorvalues  = a0errorvalues
+
         return np.array(BJDmidP), avalues,aerrorvalues, psivalues,psierrorvalues, a0values,a0errorvalues
 
-    def lc_model(self, time, amp, phase, zp):
+    def get_lc_model(self, time=None, amp=None, phase=None, zp=None):
         """
         Get modulated model light curve.
 
         Parameters
         ----------
         time : array
-            Desired time points where modulated model light curve is desired.
+            Time points where modulated model light curve is desired.
         amp : array
             Amplitude variation by time.
         phase : array
@@ -570,13 +604,53 @@ class TemplateFitter:
             Modulated model light curve.
         """
         if not hasattr(self,"pfit"):
-            warn("Please run \'fit\' first!")
+            warnings.warn("Please run \'fit\' first!")
             return None
 
         nharmonics = (len(self.pfit)-2)//2
 
+        if time is None:
+            time  = self.oc_time
+            amp   = self.avalues
+            phase = self.psivalues
+            zp    = self.a0values
+
         ymodel = modulated_lc_model( time,
                                     zp/self.pfit[-1], amp/self.pfit[1], phase-self.pfit[nharmonics+1],
                                     self.pfit, self.kind)
+
+        return ymodel
+
+    def get_lc_model_interp(self,kind='slinear'):
+        """
+        Get modulated model light curve interpolated at the original time points.
+
+        Parameters
+        ----------
+        kind : str or int, optional
+            Specifies the kind of interpolation. Default is ‘slinear’.
+            See `scipy.interpolate.interp1d` for the kinds.
+
+        Returns:
+        -------
+        ymodel : array
+            Modulated model light curve interpolated at the original time points.
+        """
+
+        from scipy.interpolate import interp1d
+
+        goodpts = np.isfinite(self.avalues)
+        ampinterp = interp1d(self.oc_time[goodpts],self.avalues[goodpts],
+                            kind=kind,fill_value="extrapolate")
+
+        goodpts = np.isfinite(self.psivalues)
+        phiinterp = interp1d(self.oc_time[goodpts],self.psivalues[goodpts],
+                            kind=kind,fill_value="extrapolate")
+
+        goodpts = np.isfinite(self.a0values)
+        zpinterp = interp1d(self.oc_time[goodpts],self.a0values[goodpts],
+                            kind=kind,fill_value="extrapolate")
+
+        ymodel = self.get_lc_model(self.time, ampinterp(self.time), phiinterp(self.time), zpinterp(self.time))
 
         return ymodel
