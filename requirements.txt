@@ -13,3 +13,4 @@ ephem
 astroquery
 numpydoc
 nbsphinx
+statsmodels
