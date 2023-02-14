@@ -6,11 +6,7 @@ from joblib import Parallel, delayed
 import warnings
 from tqdm import tqdm
 from multiprocessing import cpu_count
-try:
-    from statsmodels.nonparametric.kernel_regression import KernelReg
-except ModuleNotFoundError:
-    print('No module named: statsmodels')
-    print('Install it if you wish to use fittype = \'nonparametric\'!')
+from statsmodels.nonparametric.kernel_regression import KernelReg
 
 from scipy.stats import binned_statistic
 from scipy.optimize import minimize
@@ -44,7 +40,8 @@ def mintime_parallel(params):
         t = result.x + zero_time
     elif fittype=='model':
         res = minimize(chi2model, (x0,y0), args=(x,y,err,pol) ,
-                       method='Powell')
+                       method='Powell',
+                       bounds=((-period*0.1,period*0.1),(-np.inf,np.inf)))
 
         #yoffset = res.x[1]
         xoffset = res.x[0]
@@ -87,12 +84,13 @@ class OCFitter:
         self.y = flux[goodpts]
         self.err = fluxerror[goodpts]
 
-    def get_model(self,phase=0,show_plot=False):
+    def get_model(self,phase=0,show_plot=False,smoothness=1):
         times = self.x.copy()
         zero_time = np.floor(times[0])
         times -= zero_time
 
         flux = self.y.copy()
+        fluxerr = self.err.copy()
         corrflux = flux.copy()
 
         lcmean = np.mean(flux) - np.ptp(flux)/2
@@ -117,6 +115,14 @@ class OCFitter:
             if i*period > times.max():
                 break
 
+        with warnings.catch_warnings(record=True):
+            corrflux = detrend_wrt_PDM(times,            # Time values
+                                       corrflux,         # Flux values
+                                       fluxerr,          # Flux errors
+                                       polyorder='auto', # Polynomial order or 'auto'
+                                       sigma=10,         # Sigma for sigma clipping before PDM calculation
+                                      )
+
         # Shift minimum to middle of the phase curve
         times -= phase
         times += period/2
@@ -134,19 +140,20 @@ class OCFitter:
 
         # Get model fit
         ksrmv = KernelReg(endog=ybinned, exog=xbinned, var_type='c',
-                          reg_type='ll', bw=np.array([0.02]) )
+                          reg_type='ll', bw=smoothness*np.array([np.median(np.diff(xbinned))]) )
         pol = lambda x : ksrmv.fit(np.atleast_1d(x))[0][0] if isinstance(x,float) else ksrmv.fit(np.atleast_1d(x))[0]
 
         if show_plot:
             phasetoplot = times%period +phase -period/2
+            x2plot = np.linspace(phasetoplot.min(),phasetoplot.max(),1000)
 
-            plt.figure(figsize=(12,8))
+            plt.figure(figsize=(10,6))
             ax = plt.subplot(111)
             plt.title('Light curve model to be shifted to each minimum')
             plt.plot( phasetoplot, flux , '.', c='lightgray',label='Original data')
             plt.plot( phasetoplot, corrflux , 'k.',label='Veritically shifted')
             plt.plot(xbinned,ybinned,'.',label='Binned')
-            plt.plot( np.linspace(phasetoplot.min(),phasetoplot.max(),100),pol(np.linspace(phasetoplot.min(),phasetoplot.max(),100)) ,label='Model')
+            plt.plot( x2plot ,pol(x2plot) ,label='Model')
             plt.xlabel('Cycle (= one period)')
             plt.ylabel('Brightness')
             # Shrink current axis by 20%
@@ -163,6 +170,7 @@ class OCFitter:
                     fittype='poly',
                     phase_interval=0.1,
                     order=3,smoothness=1,
+                    epoch='auto',
                     npools=-1,samplings=100000,
                     showplot=False,saveplot=True,showfirst=True,
                     filename='',
@@ -174,17 +182,27 @@ class OCFitter:
         ----------
         fittype : 'poly', 'nonparametric' or 'model'.
             The type of the fitted function.
+            - `poly` fits given order polynomial to each minimum individually.
+              Requires the `order` to be set.
+            - `nonparametric` fits a smooth function to each minimum individually.
+              Very sensitive to outliers! Requires `smoothness` to be set.
+            - `model` fits a smooth function to the median of phase folded light curve.
+              The resulted function is shifted to each minimum.
+              Error estimation is very slow, set `samplings` to ~100.
         phase_interval : float
-            The phase interval around expected minima, which is
-            used to fit a function.
+            The phase interval around an expected minimum, which is
+            used to fit the selected function.
         order : int
             Order of the polynomial to be fitted to each minimum.
             Applies only if `fittype` is `poly`.
         smoothness : float
             The smoothness of fitted nonparametric function.
-            Use ~1, to follow small scale variations. Use >1
-            to fit a really smooth function.
-            Applies only if `fittype` is `nonparametric`.
+            Use ~1, to follow small scale (noise-like) variations.
+            Use >1 to fit a really smooth function.
+            Applies only if `fittype` is `nonparametric` or `model`.
+        epoch : float or 'auto'
+            The time stamp of the first minimium.
+            If `auto`, then it is inferred automatically by fitting a model.
         npools : int, default: -1
             Number of cores during error estimation.
             If '-1', then all cores are used.
@@ -197,7 +215,8 @@ class OCFitter:
         filename : str, default: ''
             Filename to be used to save plots.
         showfirst : bool, default: True
-            Show epoch and first fit to check parameters.
+            Show epoch and first fit to check parameters
+            of the fitted function.
         """
 
         if fittype not in ['poly','nonparametric','model']:
@@ -216,51 +235,111 @@ class OCFitter:
 
         cadence = np.median(np.diff(x))
 
+        zero_time = np.floor(x[0])
+
         # List to store times of minima
         mintimes = []
 
-        #####################################
-        # Fit first cycle to estimate epoch #
-        #####################################
-        umcycle = np.where(x<x[0]+period)[0]
-        um2 = np.argmin( y[umcycle] )
+        ####################################################
+        # Fit phase folded and binned lc to estimate epoch #
+        ####################################################
+        if epoch == 'auto':
+            # Loop over each cycle and shift them vertically to match each other
+            corrflux = y.copy()
+            lcmean = np.mean(y) - np.ptp(y)/2
 
-        # If very first point is the min, extend phase interval
-        if um2 == 0:
-            umcycle = np.where(x<x[0]+1.3*period)[0]
-            um2 = np.argmin( y[umcycle] )
+            i = 0
+            while True:
+                um = np.where(( i*period <= x) & (x < period + i*period)  )[0]
 
-            mean_t = x[umcycle][um2]
-        else:
-            mean_t = x[umcycle][um2]
+                if len(um)==0:
+                    if i*period > x.max():
+                        break
+                    else:
+                        i += 1
+                        continue
+                corrflux[um] -= corrflux[um].mean()
+                corrflux[um] += lcmean
+                i += 1
 
-        zero_time = np.floor(x[0])
+                if i*period > x.max():
+                    break
 
-        # Fit the data within this phase interval
-        pm = period*0.1 #days
+            # Estimate epoch from minimum of binned lc
+            ybinned,xbinned,_ = binned_statistic((x-x[0])%period, corrflux,
+                                                statistic='median',bins=100,range=(0,period))
+            xbinned = (xbinned[1:] + xbinned[:-1])/2
 
-        um=np.where((mean_t-pm<x) & (x<=mean_t+pm)  )[0]
+            mean_t_at = np.nanargmin(ybinned)
+            mean_t = xbinned[mean_t_at]+x[0]
 
-        if fittype=='nonparametric':
-            ksrmv = KernelReg(endog=y[um], exog=x[um]-zero_time, var_type='c',
-                              reg_type='ll', bw=np.array([np.median(np.diff(x[um]))]) )
-            p = lambda x : ksrmv.fit(np.atleast_1d(x))[0][0] if isinstance(x,float) else ksrmv.fit(np.atleast_1d(x))[0]
-        else:
+            if showfirst or showplot or debug:
+                plt.figure(figsize=(8,6))
+                plt.suptitle("Initial epoch based on binned lc")
+                plt.plot((x-x[0])%period +x[0],corrflux,'.',label='Original')
+                plt.plot(xbinned+x[0],ybinned,'.',label='Shifted and Binned')
+                plt.axvline( mean_t ,c='r')
+                plt.xlabel('Time')
+                plt.ylabel('Brightness')
+                plt.legend()
+                plt.show()
+
+            # Fit the data within this phase interval
+            pm = period*max(0.1,phase_interval) #days
+
+            um=np.where((mean_t-pm<x) & (x<=mean_t+pm))[0]
+
+            pol,phaseoffset = self.get_model(phase=mean_t-zero_time,show_plot=debug,smoothness=smoothness)
+
             with warnings.catch_warnings(record=True):
-                z = np.polyfit(x[um]-zero_time, y[um], 5)
-            p = np.poly1d(z)
+                y0 = np.mean(y[um]) - np.mean(pol(x[um]-zero_time))
+                x0 = 0
+                res = minimize(chi2model, (x0,y0),
+                               args=(x[um]-zero_time, y[um],err[um],pol),
+                               method='Powell',
+                               bounds=((-period*0.1,period*0.1),(-np.inf,np.inf)))
 
-        result = minimize_scalar(p, bounds=(mean_t-zero_time-pm, mean_t-zero_time+pm), method='bounded')
-        mean_t = result.x + zero_time
+            yoffset = res.x[1]
+            xoffset = res.x[0]
+
+            mean_t = mean_t - xoffset
+
+            '''
+
+            if fittype=='nonparametric':
+                ksrmv = KernelReg(endog=y[um], exog=x[um]-zero_time, var_type='c',
+                                  reg_type='ll', bw=np.array([np.median(np.diff(x[um]))]) )
+                p = lambda x : ksrmv.fit(np.atleast_1d(x))[0][0] if isinstance(x,float) else ksrmv.fit(np.atleast_1d(x))[0]
+            else:
+                with warnings.catch_warnings(record=True):
+                    z = np.polyfit(x[um]-zero_time, y[um], 5)
+                p = np.poly1d(z)
+
+            result = minimize_scalar(p, bounds=(mean_t-zero_time-pm, mean_t-zero_time+pm), method='bounded')
+            mean_t = result.x + zero_time
+
+            '''
+        else:
+            try:
+                mean_t = float(epoch)
+            except ValueError:
+                raise ValueError("Epoch must be `auto` or a number!")
 
         if showplot or showfirst:
+            umcycle = (x[0]<=x) & (x<=x[0]+period)
+
             plt.figure(figsize=(8,6))
             plt.scatter(x[umcycle],y[umcycle],c='k',label='First cycle')
-            plt.plot(x[um],p(x[um]-zero_time))
+            if epoch == 'auto':
+                x2plot = np.linspace(x[um].min(),x[um].max(),100)
+                plt.plot(x2plot,pol(x2plot-zero_time+xoffset)+yoffset,label='Model')
             plt.axvline( mean_t, c='r',label='Epoch',zorder=0 )
             plt.xlabel('Time')
             plt.ylabel('Brightness')
-            plt.suptitle('Estimating epoch: '+filename)
+            if epoch == 'auto':
+                plt.suptitle('Estimating epoch by fitting a model')
+            else:
+                plt.suptitle('Using the given epoch')
             plt.legend()
             plt.show()
 
@@ -269,13 +348,14 @@ class OCFitter:
         #######################################
 
         # Initialize progress bar
-        pbar = tqdm()
+        _total = np.sum(np.diff(x[y<np.mean(y)]%period/period)<0)
+        pbar = tqdm(total=_total,desc='Fitting cycles')
 
         # Range to be fitted around the expected minimum:
         pm = period*phase_interval #days
 
         if fittype=='model':
-            pol,phaseoffset = self.get_model(phase=mean_t-zero_time,
+            pol,phaseoffset = self.get_model(phase=mean_t-zero_time,smoothness=smoothness,
                                              show_plot=showfirst or showplot)
 
         i=1 #First minimum
@@ -297,10 +377,19 @@ class OCFitter:
             ###################################################
             if fittype=='nonparametric':
                 ksrmv = KernelReg(endog=y[um], exog=x[um]-zero_time, var_type='c',
-                                  reg_type='ll', bw=np.array([np.median(np.diff(x[um]))]) )
+                                  reg_type='ll', bw=smoothness*np.array([np.median(np.diff(x[um]))]) )
                 p = lambda x : ksrmv.fit(np.atleast_1d(x))[0][0] if isinstance(x,float) else ksrmv.fit(np.atleast_1d(x))[0]
 
-                result = minimize_scalar(p, bounds=(mean_t-zero_time-pm, mean_t-zero_time+pm), method='bounded')
+                try:
+                    result = minimize_scalar(p, bounds=(mean_t-zero_time-pm, mean_t-zero_time+pm), method='bounded')
+                except np.linalg.LinAlgError as w:
+                    warnings.warn( \
+                        str(w) + "\nSkipping this minimum! Try to use a larger phase interval to avoid problems!")
+
+                    mean_t = mean_t + period
+                    i=i+1
+                    continue
+
                 t_initial = result.x + zero_time
             elif fittype=='model':
                 with warnings.catch_warnings(record=True):
@@ -308,8 +397,8 @@ class OCFitter:
                     x0 = 0
                     res = minimize(chi2model, (x0,y0),
                                    args=(x[um]-zero_time -(i-1)*period , y[um],err[um],pol),
-                                   method='Powell')
-                                   #bounds=((-period/2,period/2),(-np.inf,np.inf)))
+                                   method='Powell',
+                                   bounds=((-period/2,period/2),(-np.inf,np.inf)))
 
                 yoffset = res.x[1]
                 xoffset = res.x[0]
@@ -356,6 +445,7 @@ class OCFitter:
             if len(x[um_before])<(pm/cadence*dutycycle) or len(x[um_after])<(pm/cadence*dutycycle):
                 mean_t = mean_t + period
                 i=i+1
+
                 continue
 
             ########################################################
@@ -374,8 +464,8 @@ class OCFitter:
                     x0 = xoffset
                     res = minimize(chi2model, (x0,y0),
                                    args=(x[um]-zero_time-(i-1)*period , y[um],err[um],pol),
-                                   method='Powell')
-                                   #bounds=((-period/2,period/2),(-np.inf,np.inf)))
+                                   method='Powell',
+                                   bounds=((-period*0.1,period*0.1),(-np.inf,np.inf)))
 
                 yoffset = res.x[1]
                 xoffset = res.x[0]
@@ -426,6 +516,14 @@ class OCFitter:
             if len(x[um_before])<(pm/cadence*0.2) or len(x[um_after])<(pm/cadence*0.2) or len(x[um])<(pm/cadence*0.2):
                 mean_t = mean_t + period
                 i=i+1
+
+                continue
+
+            # Continue if there are too few points
+            if len(y[um]) < 3:
+                mean_t = mean_t + period
+                i=i+1
+
                 continue
 
             # Continue if fit is not a minimum
@@ -435,6 +533,7 @@ class OCFitter:
             if not (middle_point<=first_point and middle_point<=last_point):
                 mean_t = mean_t + period
                 i=i+1
+
                 continue
 
             ###########################################################
@@ -469,18 +568,20 @@ class OCFitter:
             # Plot the fit #
             ################
             #plt.plot(x-zero_time,y,'o',c='gray')
-            plt.errorbar(x[um]-zero_time,y[um],yerr=err[um],color='k',fmt='.',zorder=0)
+            plt.errorbar(x[um]-zero_time,y[um],yerr=err[um],color='k',fmt='.',zorder=0,ecolor='lightgray')
             #plt.plot(x[um_before]-zero_time,y[um_before],'m.',zorder=5)
             if fittype=='model':
                 xtobeplotted = np.linspace( x[um].min(),x[um].max(), 1000 )
-                plt.plot(xtobeplotted-zero_time,pol(xtobeplotted-zero_time +xoffset -(i-1)*period)+yoffset ,c='r',zorder=10)
+                plt.plot(xtobeplotted-zero_time,pol(xtobeplotted-zero_time +xoffset -(i-1)*period)+yoffset ,c='r',zorder=10,label='Model')
             else:
                 xtobeplotted = np.linspace( (x[um]-zero_time).min(),(x[um]-zero_time).max(), 1000 )
-                plt.plot(xtobeplotted,p(xtobeplotted),c='r',zorder=10)
+                plt.plot(xtobeplotted,p(xtobeplotted),c='r',zorder=10,label=fittype)
             plt.axvline(t-zero_time,zorder=0,label='Observed min')
             if firstmin:
+                plt.suptitle('First cycle to check phase interval and model')
                 epoch = t-zero_time-(i-1)*period
             else:
+                plt.suptitle('%d. cycle' % (i))
                 plt.axvline(epoch+(i-1)*period,c='lightgray',zorder=0,label='Calculated')
             #plt.axvline(t_initial_final-zero_time)
             plt.xlabel('Time')
@@ -510,6 +611,8 @@ class OCFitter:
         mintimes = np.array(mintimes)
         time_of_minimum = mintimes[:,0]
         err_of_minimum = mintimes[:,1]
+
+        print("Done!")
 
         return time_of_minimum,err_of_minimum
 
@@ -555,6 +658,8 @@ class OCFitter:
 
         if t0 is None: t0 = min_times.min()
 
+        data_length = min_times.max() - min_times.min()
+
         i=0
         for t in min_times:
             #Calculate O-C value
@@ -563,6 +668,10 @@ class OCFitter:
                 if np.abs(OC)>0.9*period:
                     i=i+1
                     OC = (t-t0)-i*period
+                    if np.abs(OC) > data_length:
+                        # if OC value not converged
+                        OC = np.nan
+                        break
                     continue
                 else:
                     break
@@ -575,11 +684,13 @@ class OCFitter:
         else:
             np.savetxt(filename+'_OC.txt',OC_all )
 
-        if min_times_err is not None and saveOC:
-            plt.errorbar(OC_all[:,0],OC_all[:,1],yerr=min_times_err,fmt='.')
-        else:
-            plt.scatter(OC_all[:,0],OC_all[:,1])
-        plt.axhline(0,color='gray',zorder=0)
+        plt.errorbar(OC_all[:,0],OC_all[:,1],yerr=min_times_err,fmt='.',ecolor='lightgray')
+        yliml = OC_all[:,1].min() \
+                - (2*np.nanmedian(min_times_err) if min_times_err is not None else OC_all[:,1].std())
+        ylimu = OC_all[:,1].max() \
+                + (2*np.nanmedian(min_times_err) if min_times_err is not None else OC_all[:,1].std())
+        plt.ylim(yliml,ylimu)
+        plt.axhline(0,color='lightgray',zorder=0,ls='--')
         plt.xlabel('Time')
         plt.ylabel('O-C (days)')
         plt.tight_layout()
@@ -592,4 +703,4 @@ class OCFitter:
         if min_times_err is not None:
             return OC_all,min_times_err
         else:
-            return OC_all
+            return OC_all,np.ones_like(OC_all)*np.nan
