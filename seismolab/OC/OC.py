@@ -11,6 +11,8 @@ from statsmodels.nonparametric.kernel_regression import KernelReg
 from scipy.stats import binned_statistic
 from scipy.optimize import minimize
 
+from .shift_curves import shift_phase_curves_vertically
+
 def chi2model(params,x,y,sig,pol):
     xoffset = params[0]
     yoffset = params[1]
@@ -91,37 +93,11 @@ class OCFitter:
 
         flux = self.y.copy()
         fluxerr = self.err.copy()
-        corrflux = flux.copy()
-
-        lcmean = np.mean(flux) - np.ptp(flux)/2
 
         period = self.period
 
         # Loop over each cycle and shift them vertically to match each other
-        i = 0
-        while True:
-            um = np.where(( i*period <= times) & (times < period + i*period)  )[0]
-
-            if len(um)==0:
-                if i*period > times.max():
-                    break
-                else:
-                    i += 1
-                    continue
-            corrflux[um] -= corrflux[um].min()
-            corrflux[um] += lcmean
-            i += 1
-
-            if i*period > times.max():
-                break
-
-        with warnings.catch_warnings(record=True):
-            corrflux = detrend_wrt_PDM(times,            # Time values
-                                       corrflux,         # Flux values
-                                       fluxerr,          # Flux errors
-                                       polyorder='auto', # Polynomial order or 'auto'
-                                       sigma=10,         # Sigma for sigma clipping before PDM calculation
-                                      )
+        corrflux = shift_phase_curves_vertically(times, flux, fluxerr, period)
 
         # Shift minimum to middle of the phase curve
         times -= phase
@@ -245,25 +221,7 @@ class OCFitter:
         ####################################################
         if epoch == 'auto':
             # Loop over each cycle and shift them vertically to match each other
-            corrflux = y.copy()
-            lcmean = np.mean(y) - np.ptp(y)/2
-
-            i = 0
-            while True:
-                um = np.where(( i*period <= x) & (x < period + i*period)  )[0]
-
-                if len(um)==0:
-                    if i*period > x.max():
-                        break
-                    else:
-                        i += 1
-                        continue
-                corrflux[um] -= corrflux[um].mean()
-                corrflux[um] += lcmean
-                i += 1
-
-                if i*period > x.max():
-                    break
+            corrflux = shift_phase_curves_vertically(x, y, err, period)
 
             # Estimate epoch from minimum of binned lc
             ybinned,xbinned,_ = binned_statistic((x-x[0])%period, corrflux,
@@ -275,7 +233,7 @@ class OCFitter:
 
             if showfirst or showplot or debug:
                 plt.figure(figsize=(8,6))
-                plt.suptitle("Initial epoch based on binned lc")
+                plt.suptitle("Initial epoch based on shifted and binned light curve")
                 plt.plot((x-x[0])%period +x[0],corrflux,'.',label='Original')
                 plt.plot(xbinned+x[0],ybinned,'.',label='Shifted and Binned')
                 plt.axvline( mean_t ,c='r')
