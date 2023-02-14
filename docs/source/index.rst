@@ -36,6 +36,8 @@ Contents
   query_gaia_cmd
   fourier
   template_fitting
+  OC_calculator
+  time_frequency
 
 .. toctree::
 
