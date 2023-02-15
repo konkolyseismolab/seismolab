@@ -755,7 +755,7 @@ class MultiHarmonicFitter(BaseFitter):
                 return None,None,None
 
         if self.error is None:
-            return self.t, self.y - self.lc_model(self.t, *self.pfit)
+            return self.t, self.y - self.lc_model(self.t, *self.pfit), np.ones_like(self.t)*np.nan
         else:
             return self.t, self.y - self.lc_model(self.t, *self.pfit), self.error
 
@@ -1298,7 +1298,7 @@ class MultiFrequencyFitter(BaseFitter):
                 return None,None,None
 
         if self.error is None:
-            return self.t, self.y - self.lc_model(self.t, *self.pfit)
+            return self.t, self.y - self.lc_model(self.t, *self.pfit), np.ones_like(self.t)*np.nan
         else:
             return self.t, self.y - self.lc_model(self.t, *self.pfit), self.error
 
