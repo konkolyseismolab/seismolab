@@ -668,6 +668,6 @@ class OCFitter:
         plt.close('all')
 
         if min_times_err is not None:
-            return OC_all,min_times_err
+            return OC_all[:,0],OC_all[:,1],min_times_err
         else:
-            return OC_all,np.ones_like(OC_all)*np.nan
+            return OC_all[:,0],OC_all[:,1],np.ones_like(OC_all)*np.nan
