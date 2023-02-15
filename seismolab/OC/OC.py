@@ -642,12 +642,21 @@ class OCFitter:
         else:
             np.savetxt(filename+'_OC.txt',OC_all )
 
+        # Plot to get ylim without errorbars
+        plt.plot(OC_all[:,0],OC_all[:,1],'.',ms=0)
+        yliml1,ylimu1 = plt.gca().get_ylim()
+        plt.clf()
+
         plt.errorbar(OC_all[:,0],OC_all[:,1],yerr=min_times_err,fmt='.',ecolor='lightgray')
-        yliml = OC_all[:,1].min() \
-                - (2*np.nanmedian(min_times_err) if min_times_err is not None else OC_all[:,1].std())
-        ylimu = OC_all[:,1].max() \
-                + (2*np.nanmedian(min_times_err) if min_times_err is not None else OC_all[:,1].std())
+        yliml2 = np.nanmin(OC_all[:,1]) \
+                - (2*np.nanmedian(min_times_err) if min_times_err is not None else np.nanstd(OC_all[:,1]))
+        ylimu2 = np.nanmax(OC_all[:,1]) \
+                + (2*np.nanmedian(min_times_err) if min_times_err is not None else np.nanstd(OC_all[:,1]))
+
+        ylimu = ylimu1 if ylimu1 > ylimu2 else ylimu2
+        yliml = yliml1 if yliml1 < yliml2 else yliml2
         plt.ylim(yliml,ylimu)
+
         plt.axhline(0,color='lightgray',zorder=0,ls='--')
         plt.xlabel('Time')
         plt.ylabel('O-C (days)')
