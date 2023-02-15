@@ -686,7 +686,7 @@ class OCFitter:
         OC_all = np.array(OC_all)
         if min_times_err is not None and saveOC:
             np.savetxt(filename+'_OC.txt',np.c_[ OC_all,min_times_err] )
-        else:
+        elif saveOC:
             np.savetxt(filename+'_OC.txt',OC_all )
 
         # Plot to get ylim without errorbars
