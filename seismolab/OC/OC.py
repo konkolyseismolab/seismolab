@@ -143,13 +143,21 @@ class OCFitter:
         return pol , phase
 
     def fit_minima(self,
-                    fittype='poly',
+                    fittype='model',
                     phase_interval=0.1,
-                    order=3,smoothness=1,
+                    order=3,
+                    smoothness=1,
+
                     epoch='auto',
-                    npools=-1,samplings=100000,
-                    showplot=False,saveplot=True,showfirst=True,
+
+                    npools=-1,
+                    samplings=100,
+
+                    showplot=False,
+                    saveplot=False,
+                    showfirst=False,
                     filename='',
+
                     debug=False):
         """
         Fit all minima(!) one by one.
@@ -181,18 +189,25 @@ class OCFitter:
             If `auto`, then it is inferred automatically by fitting a model.
         npools : int, default: -1
             Number of cores during error estimation.
-            If '-1', then all cores are used.
+            If `-1`, then all cores are used.
         samplings : int, default: 100000
             Number of resamplings for error estimation.
         showplot : bool, default: False
-            Show all plots.
+            Show each fitted minima and other useful plots.
         saveplot : bool, default: True
             Save all plots.
         filename : str, default: ''
             Filename to be used to save plots.
         showfirst : bool, default: True
-            Show epoch and first fit to check parameters
-            of the fitted function.
+            Show epoch estimation and first cycle fit
+            to check parameters of the fitted function.
+
+        Returns:
+        -------
+        times_of_minimum : array
+            The calculated minimum times.
+        error_of_minimum : array
+            The error of the minimum times.
         """
 
         if fittype not in ['poly','nonparametric','model']:
@@ -220,6 +235,8 @@ class OCFitter:
         # Fit phase folded and binned lc to estimate epoch #
         ####################################################
         if epoch == 'auto':
+            self.epoch = None
+
             # Loop over each cycle and shift them vertically to match each other
             corrflux = shift_phase_curves_vertically(x, y, err, period)
 
@@ -280,6 +297,7 @@ class OCFitter:
         else:
             try:
                 mean_t = float(epoch)
+                self.epoch = epoch
             except ValueError:
                 raise ValueError("Epoch must be `auto` or a number!")
 
@@ -572,27 +590,41 @@ class OCFitter:
 
         print("Done!")
 
+        self.min_times = time_of_minimum
+        self.min_times_err = err_of_minimum
+
         return time_of_minimum,err_of_minimum
 
-    def calculate_OC(self,min_times,period,t0=None,min_times_err=None,saveplot=False,showplot=False,saveOC=True,filename=''):
+    def calculate_OC(self,
+                    min_times=None,
+                    period=None,
+                    epoch=None,
+                    min_times_err=None,
+
+                    showplot=False,
+                    saveplot=False,
+                    saveOC=False,
+                    filename=''):
         """
         Calculate O-C curve from given period and minimum times.
 
         Parameters
         ----------
-        min_times : array
+        min_times : array, optional
             Observed (O) times of minima.
-        period : float
+        period : float, optional
             Period to be used to construct calculated (C) values.
-        t0 : float, default: first 'min_times' value
-            Epooch to be used to construct calculated (C) values.
+        epoch : float, default: first `min_times` value, optional
+            Epoch to be used to construct calculated (C) values.
+            If note given, then the first minimum time is
+            used as epoch.
         min_times_err : array, optional
             Error of observed (O) times of minima.
 
-        saveplot : bool, deaful: False
-            Save results.
         showplot : bool, default: False
             Show results.
+        saveplot : bool, deaful: False
+            Save results.
         saveOC : bool, default: True
             Save constructed OC as txt file.
         filename : str, default: ''
@@ -600,12 +632,24 @@ class OCFitter:
 
         Returns:
         -------
+        mid_times : array
+            The given minimum times.
         OC : array
-            O-C time values.
-        OCerr : array, optional
-            If `min_times_err` was given, the error of OC values.
+            The calculated O-C values.
+        OCerr : array
+            If `min_times_err` was given, the error of the O-C values.
         """
         print('Calculating O-C...')
+
+        if min_times is None:
+            min_times = self.min_times
+            min_times_err = self.min_times_err
+
+        if epoch is None:
+            epoch = self.epoch
+
+        if period is None:
+            period = self.period
         period = float(period)
 
         min_times = min_times[ min_times.argsort() ]
@@ -614,7 +658,10 @@ class OCFitter:
 
         OC_all = [] #List to store OC values
 
-        if t0 is None: t0 = min_times.min()
+        if epoch is None:
+            t0 = min_times.min()
+        else:
+            t0 = epoch
 
         data_length = min_times.max() - min_times.min()
 
