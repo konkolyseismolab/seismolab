@@ -23,6 +23,8 @@ from multiprocessing import cpu_count
 import argparse
 from argparse import RawTextHelpFormatter
 
+__all__ = ['query_gaia']
+
 class ProgressParallel(joblib.Parallel):
     def __init__(self, total=None, **kwds):
         self.total = total
