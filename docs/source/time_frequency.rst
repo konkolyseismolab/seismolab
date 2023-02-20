@@ -1,4 +1,0 @@
-Time-frequency transform
-========================
-
-Examples...
