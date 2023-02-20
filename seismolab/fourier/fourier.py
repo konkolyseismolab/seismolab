@@ -11,7 +11,7 @@ import joblib
 from tqdm.auto import tqdm
 from scipy import stats
 
-__all__ = ['MultiHarmonicFitter','MultiFrequencyFitter']
+__all__ = ['Fourier','MultiHarmonicFitter','MultiFrequencyFitter']
 
 class ProgressParallel(joblib.Parallel):
     def __init__(self, total=None, **kwds):
@@ -93,14 +93,28 @@ class BaseFitter():
 
         return sigma_f,sigma_a,sigma_phi
 
-    def get_spectral_window(self,
-                            minimum_frequency=None,
-                            maximum_frequency=None,
-                            nyquist_factor=1,
-                            samples_per_peak=10,
-                            plotting=False):
+class Fourier(BaseFitter):
+    '''
+
+    Attributes
+    ----------
+    t : array-like
+        Time values of the light curve.
+    y : array-like
+        Flux/mag values of the light curve.
+    error : array-like, optional
+        Flux/mag errors values of the light curve. If not given, Fourier parameter
+        errors will be less reliable. In this case use `error_estimation`.
+    '''
+
+    def spectral_window(self,
+                        minimum_frequency=None,
+                        maximum_frequency=None,
+                        nyquist_factor=1,
+                        samples_per_peak=10,
+                        plotting=False):
         """
-        Calculates spectral window.
+        Calculates the spectral window.
 
         Parameters
         ----------
@@ -146,6 +160,71 @@ class BaseFitter():
             plt.close(fig)
 
         return lsf,sw
+
+    def spectrum(self,
+                minimum_frequency=None,
+                maximum_frequency=None,
+                nyquist_factor=1,
+                samples_per_peak=10,
+                plotting=False):
+        """
+        Calculates the classic Fourier spectrum.
+
+        Parameters
+        ----------
+        minimum_frequency : float, optional
+            If specified, then use this minimum frequency rather than one chosen based on the size
+            of the baseline.
+        maximum_frequency : float, optional
+            If specified, then use this maximum frequency rather than one chosen based on the average
+            nyquist frequency.
+        nyquist_factor : float, default: 1
+            The multiple of the average nyquist frequency used to choose the maximum frequency
+            if ``maximum_frequency`` is not provided.
+        samples_per_peak:  float, default: 10
+            The approximate number of desired samples across the typical frequency peak.
+        plotting: bool, default: False
+            If `True`, spectrum will be displayed.
+
+        Returns
+        -------
+        freq : array-like
+            Frequency grid.
+        spec : array-like
+            The Fourier spectrum at given frequencies.
+        """
+
+        sampling_time = np.median(np.diff(self.t))
+        maxfreq = 0.5/sampling_time * nyquist_factor
+
+        minfreq = 1/self.t.ptp()
+
+        if minimum_frequency is not None:
+            minfreq = float(minimum_frequency)
+        if maximum_frequency is not None:
+            maxfreq = float(maximum_frequency)
+
+        Nfreqs = int(maxfreq/(1/self.t.ptp())*samples_per_peak)
+        nu_grid = np.linspace(minfreq,maxfreq,Nfreqs)
+
+        nu_grid = nu_grid[:,np.newaxis]
+
+        magcorr = self.y - np.mean(self.y)
+
+        Ftnu = magcorr  * np.exp(-1j * 2*np.pi * self.t * nu_grid)
+        Ftnu = np.nansum(Ftnu,axis=1) / len(self.y)
+
+        FFT = 2*np.abs(Ftnu)
+
+        if plotting:
+            fig = plt.figure(figsize=(15,3))
+            plt.plot(nu_grid.reshape(-1), FFT)
+            plt.xlabel('Frequency (c/d)')
+            plt.ylabel('Amplitude')
+            plt.show()
+            plt.close(fig)
+
+        return nu_grid.reshape(-1), FFT
 
 class MultiHarmonicFitter(BaseFitter):
     '''
