@@ -4,7 +4,7 @@ from scipy.optimize import minimize_scalar
 from matplotlib.backends.backend_pdf import PdfPages
 from joblib import Parallel, delayed
 import warnings
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from multiprocessing import cpu_count
 from statsmodels.nonparametric.kernel_regression import KernelReg
 
@@ -12,6 +12,8 @@ from scipy.stats import binned_statistic
 from scipy.optimize import minimize
 
 from .shift_curves import shift_phase_curves_vertically
+
+__all__ = ['OCFitter']
 
 def chi2model(params,x,y,sig,pol):
     xoffset = params[0]
