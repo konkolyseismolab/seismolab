@@ -6,19 +6,21 @@
 seismolab: tools for analyzing space-based observations
 =======================================================
 
-**seismolab** is an open-source python framework for downloading, analyzing, and visualizing data of variable stars from Kepler-TESS-Gaia surveys.
+**seismolab** is an open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys. The framework is primary intended to be used with data obtained by the Kepler, TESS and Gaia surveys, but can also be used by other similar existing and future surveys. Some modules are useful for analyzing ground-based observations as well.
 
-It has four main modules:
+It has six main modules:
 
 .. hlist::
    :columns: 1
 
    * The *Gaia* module combines Gaia data with the Bailer-Jones distance catalog, galactic extinction maps and magnitudes from the Simbad catalog.
    * The *fourier* module calculates the Fourier coefficients and Fourier parameters of light curves.
-   * The *OC* module fits a model to the extrema of a light curve to extract the minimum or maximum times and derives an O-C diagram.
    * The *template* module fits a set of Fourier harmonics to a light curve and derives the temporal variation of the amplitude/phase/zero point of the dominant variation.
+   * The *OC* module fits a model to the extrema of a light curve to extract the minimum or maximum times and derives an O-C diagram.
+   * The *inpainting* module fills gaps in time series data.
+   * The *tfa* module provides different transformation methods for time-frequency analysis.
 
-To starts using seismolab, check out the :ref:`installation <installation>` first.
+To start using `seismolab`, check out the :ref:`installation <installation>` first.
 
 
 .. toctree::
@@ -37,7 +39,8 @@ Contents
   fourier
   template_fitting
   OC_calculator
-  time_frequency
+  inpainting
+  time_frequency_transformations
 
 .. toctree::
 
