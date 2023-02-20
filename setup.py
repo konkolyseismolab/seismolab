@@ -40,7 +40,10 @@ setup(  name='seismolab',
             'seismolab.gaia',
             'seismolab.OC',
             'seismolab.template',
+            'seismolab.tfa',
+            'seismolab.inpainting',
         ],
         install_requires=requirements,
-        entry_points=entry_points
+        entry_points=entry_points,
+        package_data={"seismolab": ["inpainting/Exec_C++/*"]},
     )
