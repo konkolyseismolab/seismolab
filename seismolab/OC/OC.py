@@ -641,7 +641,7 @@ class OCFitter:
         OCerr : array
             If `min_times_err` was given, the error of the O-C values.
         """
-        print('Calculating O-C...')
+        print('Calculating the O-C...')
 
         if min_times is None:
             min_times = self.min_times
