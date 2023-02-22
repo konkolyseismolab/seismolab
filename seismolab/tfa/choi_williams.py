@@ -66,6 +66,10 @@ def choi_williams(time, brightness,
         Choi-Williams transform at the time-frequency grid points.
     """
 
+    if M//2 > len(time):
+        raise ValueError("Temporal window length is too large!\n" + \
+            "Lower the value of M!" )
+
     ncores = int(ncores)
     if ncores < 1:
         ncores = cpu_count()
