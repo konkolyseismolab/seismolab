@@ -375,7 +375,7 @@ class TemplateFitter:
         if debug:
             plt.title('Template')
             plt.scatter(self.time, self.flux)
-            plt.plot(self.time,fitter.fit_all(self.time,*pfit,fitter.kind),c='C1')
+            plt.plot(self.time,fitter.lc_model(self.time,*pfit),c='C1')
             plt.xlim(self.time.max()-3/pfit[0],self.time.max())
             plt.show()
 
