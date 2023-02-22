@@ -24,7 +24,7 @@ entry_points = {'console_scripts': [
     'query_gaia = seismolab.gaia:query_from_commandline'
 ]}
 
-desc='Codes to process variable star data from Kepler-TESS-Gaia surveys.'
+desc='Open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys.'
 
 setup(  name='seismolab',
         version=__version__,
