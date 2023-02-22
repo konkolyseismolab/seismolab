@@ -14,4 +14,4 @@ Alternatively you can install the current development version of seismolab:
 
   $ git clone https://github.com/konkolyseismolab/seismolab.git
   $ cd seismolab
-  $ python setup.py install
+  $ pip install .
