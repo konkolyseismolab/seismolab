@@ -548,6 +548,7 @@ def inpaint_kepler(data,
         dt=None,
         verbose=False,
         sigmabounded=0,
+        niters=100,
         setenv='./'):
 
         # out_reg_gap=out_reg_gap
@@ -561,7 +562,7 @@ def inpaint_kepler(data,
     bad = np.where(flux == 0.0)[0]
 
     #run_mca1d, flux,iflux,verbose=verbose,sigmabounded=sigmabounded
-    iflux = run_mca1d(flux,verbose=verbose,sigmabounded=sigmabounded,setenv=setenv,tempdir=tempdir)
+    iflux = run_mca1d(flux,verbose=verbose,sigmabounded=sigmabounded,setenv=setenv,tempdir=tempdir,niters=niters)
 
     npoints = len(iflux)
     inp_reg = np.zeros((2,npoints))
@@ -583,7 +584,7 @@ def inpaint_kepler(data,
 #===========================================
 #       Inpainting of kepler data
 #===========================================
-def kinpainting(time,brightness,max_sz_gap=None,verbose=False):
+def kinpainting(time,brightness,max_sz_gap=None,dt=None,niters=100,verbose=False):
     """
     Inpainting method to fill gaps in time series data.
     Mathematical details are in Pires+, 2009, MNRAS, 395, 1265
@@ -597,6 +598,11 @@ def kinpainting(time,brightness,max_sz_gap=None,verbose=False):
         Brightness values of the light curve.
     max_sz_gap : float, default: None
         Maximal size of gaps to be filled.
+    dt : float, default: None
+        Regular timing used to create a uniform time grid.
+        By default, it is the median sampling time.
+    niters : int, default: 100
+        Number of iterations.
     verbose : boolean, default: False
         Verbose output.
 
@@ -621,7 +627,12 @@ def kinpainting(time,brightness,max_sz_gap=None,verbose=False):
     #If the initialization is not working alone, use the following command
     #setenv = init_var(bool=True)
 
-    inpainted, inpainted_irreg = inpaint_kepler(data,dt=None,setenv=setenv,max_sz_gap=max_sz_gap,verbose=verbose)
+    inpainted, inpainted_irreg = inpaint_kepler(data,
+                                                dt=dt,
+                                                setenv=setenv,
+                                                niters=niters,
+                                                max_sz_gap=max_sz_gap,
+                                                verbose=verbose)
 
     #np.savetxt(path+outfile+'_inpainted_regular.dat',out.T,fmt='%.10f')
     #np.savetxt(path+outfile+'_inpainted_irregular.dat',out_irreg.T,fmt='%.10f')
