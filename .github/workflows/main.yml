@@ -46,7 +46,7 @@ jobs:
         gzip -d table1.dat.gz
         popd
     - name: Install mwdust on Mac M1
-      if: ${{ (runner.os == 'macOS') && (matrix.python-version >= 3.9) }}
+      if: ${{ (runner.os == 'macOS') && ( (matrix.python-version == "3.9") || (matrix.python-version == "3.10") ) }}
       shell: bash
       run: |
         pushd ~
@@ -54,8 +54,17 @@ jobs:
         cd mwdust
         pip3 install . --user --install-option="--no-downloads"
         popd
-    - name: Install mwdust
-      if: ${{ (runner.os != 'macOS') || (matrix.python-version < 3.9) }}
+    - name: Install mwdust on Mac
+      if: ${{ (runner.os == 'macOS') && ( (matrix.python-version == "3.7") || (matrix.python-version == "3.8") ) }}
+      shell: bash
+      run: |
+        pushd ~
+        git clone https://github.com/jobovy/mwdust.git
+        cd mwdust
+        python setup.py install --user --no-downloads
+        popd
+    - name: Install mwdust on Linux
+      if: ${{ (runner.os != 'macOS') }}
       shell: bash
       run: |
         pushd ~
