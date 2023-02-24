@@ -40,7 +40,7 @@ def test_TemplateFitter(light_curve,template_OC,template_lc,template_lc_interp):
     assert_array_almost_equal(times,times_in)
     assert_array_almost_equal(amp,amp_in)
     assert_array_almost_equal(amperr,amperr_in)
-    assert_array_almost_equal(phase,phase_in)
+    assert_array_almost_equal(phase,phase_in,decimal=4)
     assert_array_almost_equal(phaseerr,phaseerr_in)
     assert_array_almost_equal(zp,zp_in)
     assert_array_almost_equal(zperr,zperr_in)

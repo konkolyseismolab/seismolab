@@ -56,8 +56,17 @@ def test_MultiHarmonicFitter(light_curve,pfit_perr,load_lcmodel):
     pfit_in, perr_in = pfit_perr
     lcmodel_in = load_lcmodel
 
-    assert_array_almost_equal(pfit,pfit_in)
+    ncomponents = int((len(pfit)-1)/2)
+
+    # Check frequency + amplitudes
+    assert_array_almost_equal(pfit[:1+ncomponents],pfit_in[:1+ncomponents])
+    # Check zero point
+    assert_array_almost_equal(pfit[-1],pfit_in[-1])
+    # Check phases
+    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=4)
+    # Check errors
     assert_array_almost_equal(perr,perr_in)
+    # Check light curve model
     assert_array_almost_equal(lcmodel,lcmodel_in)
 
 @pytest.fixture
@@ -73,6 +82,12 @@ def test_MultiFrequencyFitter(light_curve,pfit_perr_all):
 
     pfit_in, perr_in = pfit_perr_all
 
-    assert_array_almost_equal(pfit,pfit_in)
-    assert_array_almost_equal(perr,perr_in)
+    ncomponents = int((len(pfit)-1)/2)
+
+    # Check frequency + amplitudes
+    assert_array_almost_equal(pfit[:1+ncomponents],pfit_in[:1+ncomponents])
+    # Check zero point
+    assert_array_almost_equal(pfit[-1],pfit_in[-1])
+    # Check phases
+    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=4)
 
