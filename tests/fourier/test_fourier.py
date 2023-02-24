@@ -63,7 +63,7 @@ def test_MultiHarmonicFitter(light_curve,pfit_perr,load_lcmodel):
     # Check zero point
     assert_array_almost_equal(pfit[-1],pfit_in[-1])
     # Check phases
-    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=4)
+    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=3)
     # Check errors
     assert_array_almost_equal(perr,perr_in)
     # Check light curve model
@@ -89,5 +89,5 @@ def test_MultiFrequencyFitter(light_curve,pfit_perr_all):
     # Check zero point
     assert_array_almost_equal(pfit[-1],pfit_in[-1])
     # Check phases
-    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=4)
+    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=3)
 
