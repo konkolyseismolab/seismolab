@@ -51,7 +51,7 @@ jobs:
         pushd ~
         git clone https://github.com/jobovy/mwdust.git
         cd mwdust
-        pip3 install . --user --install-option="--no-downloads"
+        python setup.py install --user --no-downloads
         popd
     - name: Run tests
       run: |
