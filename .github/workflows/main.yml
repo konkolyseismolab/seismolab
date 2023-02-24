@@ -1,0 +1,54 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  unittest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    steps:
+    - name: Checkout seismolab
+      uses: actions/checkout@v2
+      with:
+        path: seismolab
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/cache@v2
+      id: cache-pip
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Download mwdust marshall06 map
+      shell: bash
+      run: |
+        export DUST_DIR=~/DUST_DIR
+        mkdir $DUST_DIR
+        cd $DUST_DIR
+        mkdir marshall06
+        cd marshall06
+        curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/table1.dat.gz --output table1.dat.gz
+        curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/ReadMe --output ReadMe
+        gzip -d table1.dat.gz
+    - name: Install mwdust
+      shell: bash
+      run: |
+        git clone https://github.com/jobovy/mwdust.git
+        cd mwdust
+        python setup.py install --user --no-downloads
+    - name: Install dependencies
+      run: |
+        pip3 install --upgrade pip
+        pip3 install setuptools
+        pip3 install wheel
+        pip3 install pytest pytest-cov
+        pip3 install -r requirements.txt
+    - name: Run tests
+      run: |
+        python3 -m pytest --cov seismolab --cov-report xml:coverage.xml --cov-report html:coverage.html
