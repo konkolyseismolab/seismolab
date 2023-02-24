@@ -45,7 +45,17 @@ jobs:
         curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/ReadMe --output ReadMe
         gzip -d table1.dat.gz
         popd
+    - name: Install mwdust on Mac M1
+      if: ${{ (runner.os == 'macOS') && (matrix.python-version >= 3.9) }}
+      shell: bash
+      run: |
+        pushd ~
+        git clone https://github.com/jobovy/mwdust.git
+        cd mwdust
+        pip3 install . --user --install-option="--no-downloads"
+        popd
     - name: Install mwdust
+      if: ${{ (runner.os != 'macOS') || (matrix.python-version < 3.9) }}
       shell: bash
       run: |
         pushd ~
