@@ -57,5 +57,5 @@ setup(  name='seismolab',
         install_requires=requirements,
         entry_points=entry_points,
         package_data={"seismolab": ["inpainting/Exec_C++/*"]},
-        extras_require={'test': ['pytest']},
+        extras_require={'test': ['pytest','pytest-cov']},
     )
