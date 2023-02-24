@@ -39,6 +39,7 @@ jobs:
     - name: Install mwdust
       shell: bash
       run: |
+        pip install extension-helpers
         git clone https://github.com/jobovy/mwdust.git
         cd mwdust
         python setup.py install --user --no-downloads
