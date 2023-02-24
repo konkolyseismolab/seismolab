@@ -38,18 +38,22 @@ jobs:
       run: |
         export DUST_DIR=~/DUST_DIR
         mkdir $DUST_DIR
-        cd $DUST_DIR
+        pushd $DUST_DIR
         mkdir marshall06
         cd marshall06
         curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/table1.dat.gz --output table1.dat.gz
         curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/ReadMe --output ReadMe
         gzip -d table1.dat.gz
+        popd
     - name: Install mwdust
       shell: bash
       run: |
+        pushd ~
         git clone https://github.com/jobovy/mwdust.git
         cd mwdust
         python setup.py install --user --no-downloads
+        popd
     - name: Run tests
       run: |
+        export DUST_DIR=~/DUST_DIR
         python3 -m pytest --cov seismolab --cov-report xml:coverage.xml --cov-report html:coverage.html
