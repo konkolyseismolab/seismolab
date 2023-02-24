@@ -25,6 +25,13 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
+    - name: Install dependencies
+      run: |
+        pip3 install --upgrade pip
+        pip3 install setuptools
+        pip3 install wheel
+        pip3 install pytest pytest-cov
+        pip3 install -r requirements.txt
     - name: Download mwdust marshall06 map
       shell: bash
       run: |
@@ -39,17 +46,9 @@ jobs:
     - name: Install mwdust
       shell: bash
       run: |
-        pip install extension-helpers
         git clone https://github.com/jobovy/mwdust.git
         cd mwdust
         python setup.py install --user --no-downloads
-    - name: Install dependencies
-      run: |
-        pip3 install --upgrade pip
-        pip3 install setuptools
-        pip3 install wheel
-        pip3 install pytest pytest-cov
-        pip3 install -r requirements.txt
     - name: Run tests
       run: |
         python3 -m pytest --cov seismolab --cov-report xml:coverage.xml --cov-report html:coverage.html
