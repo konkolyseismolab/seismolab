@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: [3.7, 3.8, 3.9, 3.10]
     steps:
     - name: Checkout seismolab
       uses: actions/checkout@v2
@@ -46,7 +46,7 @@ jobs:
         gzip -d table1.dat.gz
         popd
     - name: Install mwdust on Mac M1
-      if: ${{ (runner.os == 'macOS') && ( (matrix.python-version == "3.9") || (matrix.python-version == "3.10") ) }}
+      if: ${{ (runner.os == 'macOS') && (matrix.python-version >= 3.9) }}
       shell: bash
       run: |
         pushd ~
@@ -55,7 +55,7 @@ jobs:
         pip3 install . --user --install-option="--no-downloads"
         popd
     - name: Install mwdust on Mac
-      if: ${{ (runner.os == 'macOS') && ( (matrix.python-version == "3.7") || (matrix.python-version == "3.8") ) }}
+      if: ${{ (runner.os == 'macOS') && (matrix.python-version < 3.9) }}
       shell: bash
       run: |
         pushd ~
