@@ -2,12 +2,13 @@
 
 # **Seismolab**
 
-Open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys. 
+Open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys.
 
 [![pip](https://img.shields.io/badge/pip-install%20seismolab-blue.svg)](https://pypi.org/project/seismolab/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 [![](https://img.shields.io/badge/Homepage-Seismolab-brightgreen)](https://konkoly.hu/staff/lmolnar/seismolab/)
 <a href="https://seismolab.readthedocs.io/en/latest/index.html"><img src="https://img.shields.io/badge/read-the_docs-4D827F.svg?style=flat"/></a>
+[![Tests](https://github.com/konkolyseismolab/seismolab/actions/workflows/main.yml/badge.svg)](https://github.com/konkolyseismolab/seismolab/actions/workflows/main.yml)
 
 </div>
 
