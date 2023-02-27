@@ -309,7 +309,7 @@ class MultiHarmonicFitter(BaseFitter):
 
         return tmp_pfit
 
-    def fit_harmonics(self,maxharmonics = 3,
+    def fit_harmonics(self,maxharmonics = 3, sigma = 4,
                   absolute_sigma=True,
                   plotting = False, scale='flux',
                   minimum_frequency=None, maximum_frequency=None,
@@ -328,6 +328,8 @@ class MultiHarmonicFitter(BaseFitter):
         maxharmonics : int, default: 3
             The maximum number of harmonics to be fitted. Pass a very large number
             to fit all harmonics, limited by the signal-to-noise ratio.
+        sigma : float, default: 4
+            Signal-to-noise ratio above which a frequency is considered significant and kept.
         absolute_sigma : bool, default: True
             If `True`, error is used in an absolute sense and the estimated parameter covariance
             reflects these absolute values.
@@ -486,6 +488,10 @@ class MultiHarmonicFitter(BaseFitter):
                                                maximum_frequency=(i+1)*best_freq + max(0.5,10*1/np.ptp(self.t)),
                                                samples_per_peak=samples_per_peak)
 
+                # Convert LS power to amplitude
+                power = np.sqrt(4*power/len(self.t))
+
+                # LS may return inf values
                 goodpts = np.isfinite(power)
                 freq = freq[goodpts]
                 power = power[goodpts]
@@ -493,8 +499,8 @@ class MultiHarmonicFitter(BaseFitter):
 
                 df = 1/np.ptp(self.t)
                 umpeak = (freq > (i+1)*best_freq - df) & (freq < (i+1)*best_freq + df)
-                if np.nanmax(np.sqrt(power[umpeak])) <= np.nanmean(np.sqrt(power)) + 3*np.nanstd(np.sqrt(power)):
-                    # peak height < mean + 3 std
+                if np.nanmax(power[umpeak]) / np.nanmean(power) < sigma:
+                    # s/n < sigma
                     break
 
                 # --- Check if best period is longer than 2x data duration ---
