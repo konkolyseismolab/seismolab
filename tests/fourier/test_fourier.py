@@ -82,12 +82,14 @@ def test_MultiFrequencyFitter(light_curve,pfit_perr_all):
 
     pfit_in, perr_in = pfit_perr_all
 
-    ncomponents = int((len(pfit)-1)/2)
+    ncomponents = int((len(pfit)-1)//3)
 
-    # Check frequency + amplitudes
-    assert_array_almost_equal(pfit[:1+ncomponents],pfit_in[:1+ncomponents])
+    # Check frequency
+    assert_array_almost_equal(pfit[:ncomponents],pfit_in[:ncomponents])
+    # Check amplitudes
+    assert_array_almost_equal(pfit[ncomponents:2*ncomponents],pfit_in[ncomponents:2*ncomponents])
     # Check zero point
     assert_array_almost_equal(pfit[-1],pfit_in[-1])
     # Check phases
-    assert_array_almost_equal(pfit[1+ncomponents:-1],pfit_in[1+ncomponents:-1],decimal=3)
+    assert_array_almost_equal(pfit[2*ncomponents:-1],pfit_in[2*ncomponents:-1],decimal=3)
 

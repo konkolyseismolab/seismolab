@@ -41,6 +41,39 @@ def is_outlier(points, thresh=3.5):
 
     return modified_z_score > thresh
 
+def sort_by_amplitude(pfit,perr):
+    ncomponents = int((len(pfit)-1)//3)
+
+    pfit = np.asarray(pfit)
+    perr = np.asarray(perr)
+
+    # Separate values by type
+    freqs =  pfit[:ncomponents]
+    amps  =  pfit[ncomponents:2*ncomponents]
+    phases = pfit[2*ncomponents:-1]
+
+    freqs_err =  perr[:ncomponents]
+    amps_err  =  perr[ncomponents:2*ncomponents]
+    phases_err = perr[2*ncomponents:-1]
+
+    # Sort values by amplitude
+    keyorder = np.argsort(amps)
+
+    # Sort values
+    freqs  = list(freqs[keyorder])
+    amps   = list(amps[keyorder])
+    phases = list(phases[keyorder])
+
+    freqs_err  = list(freqs_err[keyorder])
+    amps_err   = list(amps_err[keyorder])
+    phases_err = list(phases_err[keyorder])
+
+    # Rearrange results by amplitude
+    pfit = freqs + amps + phases + [pfit[-1]]
+    perr = freqs_err + amps_err + phases_err + [perr[-1]]
+
+    return pfit, perr
+
 class BaseFitter():
     '''
 
@@ -1207,6 +1240,8 @@ class MultiFrequencyFitter(BaseFitter):
                 self.pfit = pfit
                 self.perr = self.get_analytic_uncertainties() + [ np.sqrt(np.diag(pcov))[-1] ]
 
+                self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
+
                 return self.pfit, self.perr
 
             elif error_estimation != 'analytic' and refit is False:
@@ -1301,10 +1336,12 @@ class MultiFrequencyFitter(BaseFitter):
                     self.y = yorig
                     self.pfit = pfit
                     self.perr = perr
+                    self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
                     return self.pfit, self.perr
 
                 self.pfit = pfit
                 self.perr = perr
+                self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
                 return self.pfit, self.perr
 
             elif error_estimation != 'analytic' and refit:
@@ -1349,6 +1386,7 @@ class MultiFrequencyFitter(BaseFitter):
 
                 self.pfit = pfit
                 self.perr = newperr
+                self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
                 return self.pfit, self.perr
 
         except RuntimeError:
@@ -1360,6 +1398,7 @@ class MultiFrequencyFitter(BaseFitter):
 
             self.pfit = np.array([self.freqs, *self.amps, *self.phases, self.zeropoints[0] ])
             self.perr = np.array([self.freqserr, *self.ampserr, *self.phaseserr, self.zeropointerr[0] ])
+            self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
             return self.pfit, self.perr
 
     def get_residual(self):
