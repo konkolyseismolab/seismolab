@@ -57,7 +57,7 @@ def sort_by_amplitude(pfit,perr):
     phases_err = perr[2*ncomponents:-1]
 
     # Sort values by amplitude
-    keyorder = np.argsort(amps)
+    keyorder = np.argsort(amps)[::-1]
 
     # Sort values
     freqs  = list(freqs[keyorder])
