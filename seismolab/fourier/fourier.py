@@ -456,8 +456,10 @@ class MultiHarmonicFitter(BaseFitter):
 
                     freq, power = ls.autopower(normalization='psd',
                                                samples_per_peak=2000,
-                                               minimum_frequency=max(1e-10,freq[power.argmax()]-5/self.t.ptp()),
-                                               maximum_frequency=freq[power.argmax()]+20/self.t.ptp())
+                                               minimum_frequency=max(minimum_frequency if minimum_frequency is not None else 1e-10,
+                                                                    freq[power.argmax()]-5/self.t.ptp()),
+                                               maximum_frequency=min(maximum_frequency if maximum_frequency is not None else np.inf,
+                                                                    freq[power.argmax()]+20/self.t.ptp()) )
 
                     # LS may return inf values
                     goodpts = np.isfinite(power)
@@ -1103,11 +1105,14 @@ class MultiFrequencyFitter(BaseFitter):
                 break
 
             # Resample spectrum around highest peak
+            print(freq[power.argmax()]-5/self.t.ptp(),freq[power.argmax()],5/self.t.ptp())
             with np.errstate(divide='ignore',invalid='ignore'):
                 freq, power = ls.autopower(normalization='psd',
                                            samples_per_peak=2000,
-                                           minimum_frequency=max(1e-10,freq[power.argmax()]-5/self.t.ptp()),
-                                           maximum_frequency=freq[power.argmax()]+20/self.t.ptp())
+                                           minimum_frequency=max(minimum_frequency if minimum_frequency is not None else 1e-10,
+                                                                freq[power.argmax()]-5/self.t.ptp()),
+                                           maximum_frequency=min(maximum_frequency if maximum_frequency is not None else np.inf,
+                                                                freq[power.argmax()]+20/self.t.ptp()) )
 
             # Convert LS power to amplitude
             power = np.sqrt(4*power/len(self.t))
