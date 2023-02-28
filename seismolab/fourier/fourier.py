@@ -1093,6 +1093,7 @@ class MultiFrequencyFitter(BaseFitter):
 
             #if np.nanmax(power) <= np.nanmean(power) + sigma*np.nanstd(power):
             if np.nanmax(power) / np.nanmean(power) < sigma:
+                warn('Reached the %.1f sigma limit' % sigma)
                 # s/n < sigma
                 break
 
@@ -1144,9 +1145,12 @@ class MultiFrequencyFitter(BaseFitter):
 
                 best_freq = pfit[1]
 
+                if np.allclose(best_freq ,0):
+                    raise ValueError("Found period is infinite. Skipping...")
+
             except (RuntimeError,ValueError) as err:
                 if i == 0:
-                    warn(err)
+                    warn(str(err))
 
                     self.pfit = self.perr = [np.nan]*(3+1)
                     return self.pfit, self.perr
@@ -1396,8 +1400,8 @@ class MultiFrequencyFitter(BaseFitter):
 
             warn('Something went wrong! Returning errors from pre-whitening steps.')
 
-            self.pfit = np.array([self.freqs, *self.amps, *self.phases, self.zeropoints[0] ])
-            self.perr = np.array([self.freqserr, *self.ampserr, *self.phaseserr, self.zeropointerr[0] ])
+            self.pfit = np.array([*self.freqs, *self.amps, *self.phases, self.zeropoints[0] ])
+            self.perr = np.array([*self.freqserr, *self.ampserr, *self.phaseserr, self.zeropointerr[0] ])
             self.pfit, self.perr = sort_by_amplitude(self.pfit, self.perr)
             return self.pfit, self.perr
 
