@@ -1105,7 +1105,6 @@ class MultiFrequencyFitter(BaseFitter):
                 break
 
             # Resample spectrum around highest peak
-            print(freq[power.argmax()]-5/self.t.ptp(),freq[power.argmax()],5/self.t.ptp())
             with np.errstate(divide='ignore',invalid='ignore'):
                 freq, power = ls.autopower(normalization='psd',
                                            samples_per_peak=2000,
