@@ -451,7 +451,7 @@ class MultiHarmonicFitter(BaseFitter):
                     freq, power = ls.autopower(normalization='psd',
                                                minimum_frequency=minimum_frequency,
                                                maximum_frequency=maximum_frequency,
-                                               samples_per_peak=10,
+                                               samples_per_peak=samples_per_peak,
                                                nyquist_factor=nyquist_factor)
 
                     freq, power = ls.autopower(normalization='psd',
@@ -1081,7 +1081,7 @@ class MultiFrequencyFitter(BaseFitter):
                 freq, power = ls.autopower(normalization='psd',
                                            minimum_frequency=minimum_frequency,
                                            maximum_frequency=maximum_frequency,
-                                           samples_per_peak=10,
+                                           samples_per_peak=samples_per_peak,
                                            nyquist_factor=nyquist_factor)
 
             # Convert LS power to amplitude
