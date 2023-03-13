@@ -693,7 +693,7 @@ class MultiHarmonicFitter(BaseFitter):
                 error_estimation_fit = error_estimation_fit[ goodpts ]
 
                 if len(error_estimation_fit) < 4:
-                    print("Raise \'ntry\' or set a higher \'sample_size\'!")
+                    print("Increase \'ntry\' or set a higher \'sample_size\'!")
                     raise RuntimeError('Not enough points to estimate error!')
 
                 #meanval = np.nanmean(error_estimation_fit,axis=0)
@@ -787,7 +787,7 @@ class MultiHarmonicFitter(BaseFitter):
                 error_estimation_fit = error_estimation_fit[ goodpts ]
 
                 if len(error_estimation_fit) < 4:
-                    print("Raise \'ntry\' or set a higher \'sample_size\'!")
+                    print("Increase \'ntry\' or set a higher \'sample_size\'!")
                     raise RuntimeError('Not enough points to estimate error!')
 
                 #meanval = np.nanmean(error_estimation_fit,axis=0)
@@ -981,7 +981,7 @@ class MultiFrequencyFitter(BaseFitter):
 
         return tmp_pfit
 
-    def fit_freqs(self, maxfreqs = 3, sigma = 4,
+    def fit_freqs(self, maxfreqs = 3, sigma = 4, boxwidth = 1,
                   absolute_sigma=True,
                   plotting = False, scale='flux',
                   minimum_frequency=None, maximum_frequency=None,
@@ -1001,6 +1001,8 @@ class MultiFrequencyFitter(BaseFitter):
             limited by the signal-to-noise ratio (`sigma`).
         sigma : float, default: 4
             Signal-to-noise ratio above which a frequency is considered significant and kept.
+        boxwidth : float, default: 1
+            The frequency range to be used to calculate noise in the residual spectrum.
         absolute_sigma : bool, default: True
             If `True`, error is used in an absolute sense and the estimated parameter covariance
             reflects these absolute values.
@@ -1093,12 +1095,6 @@ class MultiFrequencyFitter(BaseFitter):
             power = power[goodpts]
             power[power<0] = 0
 
-            #if np.nanmax(power) <= np.nanmean(power) + sigma*np.nanstd(power):
-            if np.nanmax(power) / np.nanmean(power) < sigma:
-                warn('Reached the %.1f sigma limit' % sigma)
-                # s/n < sigma
-                break
-
             # --- Check if best period is longer than 2x data duration ---
             if np.allclose(freq[np.argmax(power)] ,0) or 1./freq[np.argmax(power)] > 2*np.ptp(self.t):
                 warn('Period is longer than 2x data duration!\nSet minimum frequency to avoid problems!\nSkipping...')
@@ -1161,6 +1157,39 @@ class MultiFrequencyFitter(BaseFitter):
                 else:
                     break
 
+            # Check peak S/N
+            self.pfit  = self.freqs + [pfit[1]]
+            self.pfit += self.amps + [pfit[0]]
+            self.pfit += self.phases + [pfit[2]]
+            self.pfit += [( self.zeropoints + [pfit[3]] )[0]]
+
+            yres_noise = self.get_residual()[1]
+
+            ls = LombScargle(self.t, yres_noise, nterms=1)
+
+            with np.errstate(divide='ignore',invalid='ignore'):
+                freq, power = ls.autopower(normalization='psd',
+                                           minimum_frequency=minimum_frequency,
+                                           maximum_frequency=maximum_frequency,
+                                           samples_per_peak=samples_per_peak,
+                                           nyquist_factor=nyquist_factor)
+
+            # Convert LS power to amplitude
+            power = np.sqrt(4*power/len(self.t))
+
+            # LS may return inf values
+            goodpts = np.isfinite(power)
+            freq  = freq[goodpts]
+            power = power[goodpts]
+            power[power<0] = 0
+
+            # s/n < sigma within boxwidth around peak
+            um = (freq >= pfit[1]-boxwidth/2) & (freq <= pfit[1]+boxwidth/2)
+            spern = pfit[0] / np.mean(power[um])
+            if spern < sigma:
+                warn('Reached the %.1f sigma limit' % sigma)
+                break
+
             if plotting:
                 # plot phased light curve and fit
                 per = 1/pfit[1]
@@ -1178,9 +1207,10 @@ class MultiFrequencyFitter(BaseFitter):
 
                 plt.figure(figsize=(15,3))
                 plt.subplot(121)
-                plt.plot(freq, power)
+                plt.plot(freq, power,label='S/N=%.1f' % spern)
                 plt.xlabel('Frequency (c/d)')
                 plt.ylabel('Amplitude')
+                plt.legend()
                 plt.grid()
                 plt.subplot(122)
                 plt.plot(self.t%per/per,yres-pfit[-1],'k.')
@@ -1204,31 +1234,73 @@ class MultiFrequencyFitter(BaseFitter):
             self.phaseserr.append( pcov[2] )
             self.zeropointerr.append( pcov[3] )
 
-            yres -= self._func(self.t,pfit[0],pfit[1],pfit[2], kind=kind) + pfit[3]
+            # fit all amplitudes+phases at the same time
+            try:
+                # lbound =  list( np.array(self.amps) - 0.01*np.array(self.amps) )
+                lbound = [0]*len(self.amps) + [-np.inf]*len(self.phases) + [-np.inf]
+                ubound = [np.ptp(self.y)]*len(self.amps) + [np.inf]*len(self.phases) + [np.inf]
+                bounds = (lbound,ubound)
+                pfit, pcov = curve_fit(lambda *args: self.lc_model(args[0], *self.freqs, *args[1:]), self.t, self.y,
+                                        p0=(*self.amps, *self.phases, self.zeropoints[0]),
+                                        bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=5000)
+
+                # convert all phases into the 0-2pi range
+                pfit[len(self.amps):-1] = pfit[len(self.amps):-1]%(2*np.pi)
+
+                self.amps       = list(pfit[:len(self.amps)])
+                self.phases     = list(pfit[len(self.amps):-1])
+                self.zeropoints = [pfit[-1]]*len(self.zeropoints)
+            except RuntimeError:
+                pfit      = self.amps + self.phases + [self.zeropoints[0]]
+                self.pfit = pfit
+
+            # fit all periodic components at the same time
+            try:
+                df = 1/self.t.ptp()
+                lbound = list( np.array(self.freqs) - df )
+                lbound += [0]*len(self.amps)
+                lbound += [-np.inf]*len(self.phases) + [-np.inf]
+                ubound = list( np.array(self.freqs) + df )
+                ubound += [np.ptp(self.y)]*len(self.amps) #list(3*np.array(self.amps)) #
+                ubound += [np.inf]*len(self.phases) + [np.inf]
+                bounds = (lbound,ubound)
+                pfit, pcov = curve_fit(lambda *args: self.lc_model(*args), self.t, self.y,
+                                        p0=(*self.freqs, *self.amps, *self.phases, self.zeropoints[0]),
+                                        bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=100)
+
+                # convert all phases into the 0-2pi range
+                pfit[2*len(self.amps):-1] = pfit[2*len(self.amps):-1]%(2*np.pi)
+
+                self.freqs      = list(pfit[:len(self.amps)])
+                self.amps       = list(pfit[len(self.amps):2*len(self.amps)])
+                self.phases     = list(pfit[2*len(self.amps):-1])
+                self.zeropoints = [pfit[-1]]*len(self.zeropoints)
+
+                self.pfit = pfit
+            except RuntimeError as err:
+                print(str(err))
+                self.pfit = self.freqs + list(pfit)
+
+            # Pre-whitening with all frequency components
+            yres = self.get_residual()[1]
+
 
         # --- Error estimation after all frequencies are given ---
         try:
-            # fit all amplitudes+phases at the same time
-            lbound = [0]*len(self.amps) + [-np.inf]*len(self.phases) + [-np.inf]
-            ubound = [np.ptp(self.y)]*len(self.amps) + [np.inf]*len(self.phases) + [np.inf]
-            bounds = (lbound,ubound)
-            pfit, pcov = curve_fit(lambda *args: self.lc_model(args[0], *self.freqs, *args[1:]), self.t, self.y,
-                                    p0=(*self.amps, *self.phases, np.mean(self.y)),
-                                    bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=5000)
-
-            self.amps   = pfit[:len(self.amps)]
-            self.phases = pfit[len(self.amps):-1]
-            zpfit = pfit[-1]
-
             # fit all periodic components at the same time
-            lbound = list( np.array(self.freqs) - 0.1 )
-            lbound += [0]*len(self.amps) + [-np.inf]*len(self.phases) + [-np.inf]
-            ubound = list( np.array(self.freqs) + 0.1 )
-            ubound += [np.ptp(self.y)]*len(self.amps) + [np.inf]*len(self.phases) + [np.inf]
+            zpfit = np.mean(self.y) if len(self.zeropoints)==0 else self.zeropoints[0]
+
+            df = 1/self.t.ptp()
+            lbound = list( np.array(self.freqs) - df )
+            lbound += [0]*len(self.amps)
+            lbound += [-np.inf]*len(self.phases) + [-np.inf]
+            ubound = list( np.array(self.freqs) + df )
+            ubound += [np.ptp(self.y)]*len(self.amps) #list(3*np.array(self.amps)) #
+            ubound += [np.inf]*len(self.phases) + [np.inf]
             bounds = (lbound,ubound)
             pfit, pcov = curve_fit(lambda *args: self.lc_model(*args), self.t, self.y,
                                     p0=(*self.freqs, *self.amps, *self.phases, zpfit),
-                                    bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=5000)
+                                    bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=100)
 
             # convert all phases into the 0-2pi range
             pfit[2*len(self.amps):-1] = pfit[2*len(self.amps):-1]%(2*np.pi)
@@ -1243,7 +1315,19 @@ class MultiFrequencyFitter(BaseFitter):
                 _, pcov = curve_fit(lambda *args: self.lc_model(*args), self.t + 0.5/pfit[0], self.y, p0=(self.freqs[0], *self.amps, *[(pha+np.pi)%(2*np.pi) for pha in self.phases], np.mean(self.y)) ,
                                     bounds=bounds, sigma=self.error, absolute_sigma=absolute_sigma, maxfev=5000)
             '''
+        except RuntimeError as err:
+            print(str(err))
 
+            pfit = self.freqs + self.amps + self.phases + self.zeropoints[:1]
+            pfit = np.array(pfit)
+            pcov = np.ones((len(pfit),len(pfit)))
+            inds = np.diag_indices_from(pcov)
+            pcov[inds] = self.freqserr + self.ampserr + self.phaseserr + self.zeropointerr[:1]
+            pcov = pcov**2
+
+
+        # --- Performing error estimation ---
+        try:
             if error_estimation == 'analytic':
                 self.pfit = pfit
                 self.perr = self.get_analytic_uncertainties() + [ np.sqrt(np.diag(pcov))[-1] ]
@@ -1287,7 +1371,7 @@ class MultiFrequencyFitter(BaseFitter):
                 error_estimation_fit = error_estimation_fit[ goodpts ]
 
                 if len(error_estimation_fit) < 4:
-                    print("Raise \'ntry\' or set a higher \'sample_size\'!")
+                    print("Increase\'ntry\' or set a higher \'sample_size\'!")
                     raise RuntimeError('Not enough points to estimate error!')
 
                 #meanval = np.nanmean(error_estimation_fit,axis=0)
@@ -1384,7 +1468,7 @@ class MultiFrequencyFitter(BaseFitter):
                 error_estimation_fit = error_estimation_fit[ goodpts ]
 
                 if len(error_estimation_fit) < 4:
-                    print("Raise \'ntry\' or set a higher \'sample_size\'!")
+                    print("Increase \'ntry\' or set a higher \'sample_size\'!")
                     raise RuntimeError('Not enough points to estimate error!')
 
                 #meanval = np.nanmean(error_estimation_fit,axis=0)
