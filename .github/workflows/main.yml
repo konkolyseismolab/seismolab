@@ -8,10 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: [3.7, 3.8, 3.9, "3.10"]
-        exclude:
-          - os: macos-latest
-            python-version: "3.10"
+        python-version: [3.8, 3.9, "3.10"]
     steps:
     - name: Checkout seismolab
       uses: actions/checkout@v2
@@ -36,46 +33,6 @@ jobs:
         pip3 install pytest pytest-cov
         pip3 install -r seismolab/requirements.txt
         pip3 install -e seismolab/.
-    - name: Download mwdust marshall06 map
-      shell: bash
-      run: |
-        export DUST_DIR=~/DUST_DIR
-        mkdir $DUST_DIR
-        pushd $DUST_DIR
-        mkdir marshall06
-        cd marshall06
-        curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/table1.dat.gz --output table1.dat.gz
-        curl ftp://cdsarc.u-strasbg.fr/pub/cats/J/A%2BA/453/635/ReadMe --output ReadMe
-        gzip -d table1.dat.gz
-        popd
-    - name: Install mwdust on Mac M1
-      if: ${{ (runner.os == 'macOS') && (matrix.python-version >= 3.9) }}
-      shell: bash
-      run: |
-        pushd ~
-        git clone https://github.com/jobovy/mwdust.git
-        cd mwdust
-        pip3 install . --user --install-option="--no-downloads"
-        popd
-    - name: Install mwdust on Mac
-      if: ${{ (runner.os == 'macOS') && (matrix.python-version < 3.9) }}
-      shell: bash
-      run: |
-        pushd ~
-        git clone https://github.com/jobovy/mwdust.git
-        cd mwdust
-        python setup.py install --user --no-downloads
-        popd
-    - name: Install mwdust on Linux
-      if: ${{ (runner.os != 'macOS') }}
-      shell: bash
-      run: |
-        pushd ~
-        git clone https://github.com/jobovy/mwdust.git
-        cd mwdust
-        python setup.py install --user --no-downloads
-        popd
     - name: Run tests
       run: |
-        export DUST_DIR=~/DUST_DIR
         python3 -m pytest --cov seismolab --cov-report xml:coverage.xml --cov-report html:coverage.html

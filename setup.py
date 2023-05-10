@@ -27,6 +27,7 @@ entry_points = {'console_scripts': [
 desc='Open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys.'
 
 setup(  name='seismolab',
+        python_requires='>=3.8',
         version=__version__,
         description=desc,
         long_description=long_description,
