@@ -3,8 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-seismolab: tools for analyzing space-based observations
-=======================================================
+.. figure:: logo-no-background.png
+ :width: 600
+ :align: left
+
+
+Python package for analyzing space-based observations
+=====================================================
 
 **seismolab** is an open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys. The framework is primary intended to be used with data obtained by the Kepler, TESS and Gaia surveys, but can also be used by other similar existing and future surveys. Some modules are useful for analyzing ground-based observations as well.
 
