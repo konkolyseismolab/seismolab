@@ -363,7 +363,7 @@ def perform_query(data,useEDR3):
         print('Querying Gaia DR3 and BJ catalogs...')
         import pyvo as vo
         # Initialize BJ catalog
-        service = vo.dal.TAPService("https://dc.zah.uni-heidelberg.de/__system__/tap/run/tap")
+        service = vo.dal.TAPService("https://dc.zah.uni-heidelberg.de/tap")
 
         # Query BJ catalog
         BJdist = service.search("SELECT TOP 1000000 BJ.source_id, \
