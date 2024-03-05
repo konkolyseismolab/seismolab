@@ -849,6 +849,8 @@ class resdata():
 # al. dustmaps is (probably) worse.  - some values were interpolated
 # to passbands that aren't included in the Schlafly/Green tables.
 # ---- extinction-vector-green19-iso.txt
+# Source: isoclassify (https://github.com/danxhuber/isoclassify)
+# Huber et al. 2017
 class extinction():
     def __init__(self):
         self.ab=3.868052213359704
