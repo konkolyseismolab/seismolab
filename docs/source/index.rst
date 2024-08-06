@@ -8,8 +8,8 @@
  :align: left
 
 
-Python package for analyzing space-based observations
-=====================================================
+Python package for analyzing space-based observations of variable stars
+=======================================================================
 
 **seismolab** is an open-source python framework for downloading, analyzing, and visualizing data of variable stars from space-based surveys. The framework is primary intended to be used with data obtained by the Kepler, TESS and Gaia surveys, but can also be used by other similar existing and future surveys. Some modules are useful for analyzing ground-based observations as well.
 
