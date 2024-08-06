@@ -143,6 +143,10 @@ def query_gaia(targets,gaiaDR=3,use_photodist=False,dustmodel='Combined19',plx_o
     except requests.exceptions.ConnectionError:
         sleep(1)
         gaiaquery, BJdist = perform_query(targets,useEDR3)
+    # All column names must be lowercase
+    old_names = gaiaquery.colnames
+    new_names = [c.lower() for c in gaiaquery.colnames]
+    gaiaquery.rename_columns(old_names, new_names)
 
     # --- Calculate magnitude errors from fluxes ---
     gaiaquery['phot_g_mean_mag_error'] = gaiaquery['phot_g_mean_flux_error']*2.5*1/(gaiaquery['phot_g_mean_flux']*np.log(10))
