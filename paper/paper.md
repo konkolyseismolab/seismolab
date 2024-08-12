@@ -25,9 +25,14 @@ Upon entering the era of photometric space missions, the launch of the NASA *Kep
 
 Several techniques have been developed to search for periodicities of the light curves and also for any deviation from the strictly periodic behavior. We have developed a Python package, ``seismolab``, which implements various methods for downloading, analyzing, and visualizing data of variable stars from space-based surveys. The framework is primary intended to be used with data obtained by the *Kepler*, *TESS* and *Gaia* surveys, but can also be used by other similar existing and future surveys. Some modules are also useful for analyzing ground-based observations.
 
+# Statement of need
+
 The purpose of ``seismolab`` is sixfold. It is able to combine *Gaia* data with the Bailer-Jones distance catalog [@BJ21], galactic extinction maps [@Bovy16] and magnitudes from the Simbad catalog [@Wenger00]. Different modules are implemented to extract the Fourier coefficients and Fourier parameters of light curves, and to derive the temporal variation of the amplitude, phase and zero point of the dominant variation [@Benko23]. One can extract the minimum or maximum times and derive an O-C diagram [@Sterken05]. The package can be use to fill gaps in time series data using the method of inpainting [@Pires09, @Pires15]. There is also a module that provides different transformation methods for time-frequency analysis [@Kollath97].
 
 The documentation of `seismolab` consists of pages describing the various
 available functions, as well as tutorial notebooks.
+
+# Acknowledgements
+This project has been supported by the KKP-137523 'SeismoLab' \'Elvonal grant of the Hungarian Research, Development and Innovation Office (NKFIH).
 
 # References
