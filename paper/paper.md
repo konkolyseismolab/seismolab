@@ -5,11 +5,11 @@ tags:
   - astronomy
   - variable stars
 authors:
-  - name: Attila Bodi
+  - name: Attila Bódi
     orcid: 0000-0002-8585-4544
     affiliation: "1, 2"
 affiliations:
- - name: HUN-REN CSFK Konkoly Observatory, Konkoly Thege M. \`ut 15-17, Budapest, 1121, Hungary
+ - name: HUN-REN CSFK Konkoly Observatory, Konkoly Thege M. út 15-17, Budapest, 1121, Hungary
    index: 1
  - name: Department of Astrophysical Sciences, Princeton University, 4 Ivy Lane, Princeton, NJ 08544, USA
    index: 2
@@ -33,6 +33,6 @@ The documentation of `seismolab` consists of pages describing the various
 available functions, as well as tutorial notebooks.
 
 # Acknowledgements
-This project has been supported by the KKP-137523 'SeismoLab' \'Elvonal grant of the Hungarian Research, Development and Innovation Office (NKFIH).
+This project has been supported by the KKP-137523 'SeismoLab' Élvonal grant of the Hungarian Research, Development and Innovation Office (NKFIH).
 
 # References
