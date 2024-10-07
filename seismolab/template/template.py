@@ -229,7 +229,7 @@ def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
                          kind='kde',
                          divergences=True,
                          marginals=True,
-                         textsize=25)
+                         textsize=18)
 
         # Update errors with MCMC confidence intervals
         a0_err = max(a0ep, a0em)
