@@ -205,10 +205,10 @@ def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
         import pymc as pm
 
         with pm.Model() as model:
-            ## define Normal priors to give Ridge regression
-            a0 = pm.Normal("a0", mu=a0_val, sigma=a0_err if np.isfinite(a0_err) else 0.01)
-            a = pm.Normal("a", mu=a_val, sigma=a_err if np.isfinite(a_err) else 0.01)
-            psi = pm.Normal("psi", mu=psi_val, sigma=psi_err if np.isfinite(psi_err) else 0.01)
+            ## define Uniform priors
+            a0 = pm.Uniform("a0", 0, 2, initval=a0_val)
+            a = pm.Uniform("a", 0, 2, initval=a_val)
+            psi = pm.Uniform("psi", -1, 1, initval=psi_val)
 
             ## define model
             yest = modulated_lc_model(bitBJD, a0, a, psi, pfit, kind)
