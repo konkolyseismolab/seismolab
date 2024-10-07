@@ -1,6 +1,10 @@
 About seismolab
 ===============
 
+**seismolab** is a fully-python based, open-source package, built on top of popular Python packages such as Numpy (Harris, C.R. et al., 2020, Nature, 585, 357–362), Scipy (Virtanen, P. et al., 2020, Nature Methods, 17(3), 261-272), PyMC (Abril-Pla, O. et al. (2023), PEERJ-CS, 9(15), 1516) and Astropy (Astropy Collaboration et al., 2022, ApJ, 935, 167). The framework contains the main analysis tools for the astronomical community working on the light curves of variable stars, primarily, but not exclusively, from space-based surveys. **seismolab** is a modular library that allows users to select the best method(s) for their particular science problem. It has six main modules which implement common operations often used by the variable star community, but available in limited or no form in other popular codes.
+
+The *Gaia* module facilitates the derivation of basic stellar parameters (such as distance and corrected-brightnesses) by combining different astronomical catalogs using different methods. The *fourier* module extends the standard Fourier analysis with easily available visualization tools and instant estimation of Fourier parameters. The *template* and *OC* modules provide a flexible and automatized version of commonly used methods for extracting the temporal variation of the amplitude, phase and zero-point of the dominant variation. The *inpainting* module helps to eliminate the artifacts seen in the Fourier- and time-frequency analysis caused by gaps and uneven sampling. The *tfa* module implements various techniques not available in other popular python packages to characterize light curves in the two-dimensional time-frequency plane.
+
 The `SeismoLab project <https://konkoly.hu/seismolab/>`_ is funded by the Élvonal (Forefront) Research Excellence Program of the Hungarian National Office for Research, Development and Innovation, from 01/09/2021 to 31/08/2026.
 
 This software is developed and maintained by Attila Bódi.
