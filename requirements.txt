@@ -14,9 +14,10 @@ astroquery
 numpydoc
 nbsphinx
 statsmodels
-pymc3
+pymc
 pyvo
 seaborn
 regex
 requests
 mwdust
+arviz

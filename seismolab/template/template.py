@@ -4,6 +4,7 @@ from scipy import optimize
 from astropy.convolution import Gaussian1DKernel, convolve
 from psutil import cpu_count
 from joblib import parallel_backend
+import arviz as az
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -116,14 +117,21 @@ def modulated_lc_model(time, a0, a, dPhi, pfit, kind):
 
     return y
 
-def get_stat(data):
-    """
-    Statistical values of MCMC posterior
-    """
-    value = np.median(data)
-    ep = np.percentile(data,84.1)-value
-    em = value-np.percentile(data,15.9)
-    return value,ep,em
+
+def unpack_az_statistics(az_stat):
+    a0 = az_stat['mean']['a0']
+    a0ep = az_stat['hdi_97%']['a0'] - a0
+    a0em = a0 - az_stat['hdi_3%']['a0']
+
+    a = az_stat['mean']['a']
+    aep = az_stat['hdi_97%']['a'] - a
+    aem = a - az_stat['hdi_3%']['a']
+
+    psi = az_stat['mean']['psi']
+    psiep = az_stat['hdi_97%']['psi'] - psi
+    psiem = psi - az_stat['hdi_3%']['psi']
+
+    return a0, a0ep, a0em, a, aep, aem, psi, psiep, psiem
 
 def smooth_data(a0values,avalues,psivalues,gapat,smoothness_factor,step):
     gapat = np.concatenate((np.array([0]),gapat,np.array([ len(a0values) ])))
@@ -177,17 +185,30 @@ def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
         return [np.nan]*7
 
     # ---- Fit zp, amp, phase ----
+    try:
+        _pfit, _pcov = optimize.curve_fit(lambda x, a0, a, psi: modulated_lc_model(x, a0, a, psi, pfit, kind),
+                                      bitBJD,bitflux,
+                                      p0=[0.9,0.9,0.1],
+                                      sigma=bitfluxerror,absolute_sigma=True,method='trf')
+    except RuntimeError:
+        return [np.nan]*7
+
+    perr_curvefit = np.sqrt(np.diag(_pcov))
+
+    # Extract fitted parameters and errors
+    a0_val, a_val, psi_val = _pfit[0], _pfit[1], _pfit[2]
+    a0_err, a_err, psi_err = perr_curvefit[0], perr_curvefit[1], perr_curvefit[2]
+
     if error_estimation == 'montecarlo':
         if debug: print('Running MCMC...')
 
-        import pymc3 as pm
-        import seaborn as sns
+        import pymc as pm
 
         with pm.Model() as model:
             ## define Normal priors to give Ridge regression
-            a0 = pm.Uniform("a0", 0., 2., testval=1.)
-            a = pm.Uniform("a", 0., 2., testval=1.)
-            psi = pm.Uniform("psi", -1., 1., testval=0.)
+            a0 = pm.Normal("a0", mu=a0_val, sigma=a0_err if np.isfinite(a0_err) else 0.01)
+            a = pm.Normal("a", mu=a_val, sigma=a_err if np.isfinite(a_err) else 0.01)
+            psi = pm.Normal("psi", mu=psi_val, sigma=psi_err if np.isfinite(psi_err) else 0.01)
 
             ## define model
             yest = modulated_lc_model(bitBJD, a0, a, psi, pfit, kind)
@@ -200,28 +221,23 @@ def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
             #Populate MCMC sampler
             traces = pm.sample(1000,chains=1,cores=1)
 
-        a0, a0ep, a0em = get_stat(traces['a0'])
-        a, aep, aem = get_stat(traces['a'])
-        psi, psiep, psiem = get_stat(traces['psi'])
+        _, a0ep, a0em, _, aep, aem, _, psiep, psiem = unpack_az_statistics(az.summary(traces, kind="stats"))
 
         if debug:
-            df_trace = pm.trace_to_dataframe(traces)
-            _ = sns.pairplot(df_trace)
+            az.plot_pair(traces,
+                         var_names=['a0', 'a', 'psi'],
+                         kind='kde',
+                         divergences=True,
+                         marginals=True,
+                         textsize=25)
 
-        return np.min(bitBJD) + np.ptp(bitBJD)/2, a0, max(a0ep,a0em), a, max(aep,aem), psi, max(psiep,psiem)
+        # Update errors with MCMC confidence intervals
+        a0_err = max(a0ep, a0em)
+        a_err = max(aep, aem)
+        psi_err = max(psiep, psiem)
 
-    else:
-        try:
-            _pfit, _pcov = optimize.curve_fit(lambda x, a0, a, psi: modulated_lc_model(x, a0, a, psi, pfit, kind),
-                                          bitBJD,bitflux,
-                                          p0=[0.9,0.9,0.1],
-                                          sigma=bitfluxerror,absolute_sigma=True,method='trf')
-        except RuntimeError:
-            return [np.nan]*7
+    return midBJD, a0_val, a0_err, a_val, a_err, psi_val, psi_err
 
-        perr_curvefit = np.sqrt(np.diag(_pcov))
-
-        return midBJD, _pfit[0], perr_curvefit[0], _pfit[1], perr_curvefit[1], _pfit[2], perr_curvefit[2]
 
 class TemplateFitter:
     def __init__(self, time,flux,fluxerror=None):
