@@ -215,7 +215,7 @@ def fit_lightcurve_chunk(midBJD,bitBJD,bitflux,bitfluxerror,
 
             ## define Normal likelihood with HalfCauchy noise (fat tails, equiv to HalfT 1DoF)
             likelihood = pm.Normal("likelihood", mu=yest,
-                                    sigma=10*bitfluxerror if bitfluxerror is not None else np.sqrt(bitflux),
+                                    sigma=bitfluxerror if bitfluxerror is not None else np.sqrt(bitflux),
                                     observed=bitflux)
 
             #Populate MCMC sampler
