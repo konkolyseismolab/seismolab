@@ -9,6 +9,7 @@ Open-source python framework for downloading, analyzing, and visualizing data of
 [![](https://img.shields.io/badge/Homepage-Seismolab-brightgreen)](https://konkoly.hu/staff/lmolnar/seismolab/)
 <a href="https://seismolab.readthedocs.io/en/latest/index.html"><img src="https://img.shields.io/badge/read-the_docs-4D827F.svg?style=flat"/></a>
 [![Tests](https://github.com/konkolyseismolab/seismolab/actions/workflows/main.yml/badge.svg)](https://github.com/konkolyseismolab/seismolab/actions/workflows/main.yml)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.07118/status.svg)](https://doi.org/10.21105/joss.07118)
 
 </div>
 
