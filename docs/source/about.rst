@@ -7,4 +7,4 @@ The *Gaia* module facilitates the derivation of basic stellar parameters (such a
 
 The `SeismoLab project <https://konkoly.hu/seismolab/>`_ is funded by the Élvonal (Forefront) Research Excellence Program of the Hungarian National Office for Research, Development and Innovation, from 01/09/2021 to 31/08/2026.
 
-This software is developed and maintained by Attila Bódi.
+This software was published in `JOSS <https://doi.org/10.21105/joss.07118>`_ and is developed and maintained by Attila Bódi.
